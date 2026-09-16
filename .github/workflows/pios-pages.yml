@@ -26,10 +26,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Assemble production shell
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          page = Path('pios/index.html')
+          html = page.read_text()
+          needle = '<script src="./app.js"></script>'
+          replacement = '<script src="./session-guard.js"></script>\n<script src="./app.js"></script>\n<script src="./product-guard.js"></script>'
+          if 'session-guard.js' not in html:
+              html = html.replace(needle, replacement)
+          page.write_text(html)
+          PY
       - name: Configure Pages
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
       - name: Upload PIOS site
         uses: actions/upload-pages-artifact@v3
         with:
