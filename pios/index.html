@@ -4,149 +4,213 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#020711" />
+  <meta name="description" content="PIOS — Personal Intelligence Operating System" />
   <title>PIOS — Personal Intelligence OS</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-<div class="shell">
+<div class="app-shell">
   <header class="topbar">
     <div class="brand">
-      <div class="brand-mark"></div>
+      <div class="brand-mark"><span></span></div>
       <div class="brand-copy"><b>PIOS</b><span>PERSONAL INTELLIGENCE OS</span></div>
     </div>
+    <div class="mission">World change → personal consequence → best next move</div>
     <div class="top-actions">
       <span id="connectionStatus" class="status-pill">VISUAL MODE</span>
       <button id="refreshBtn" class="btn hidden">Run Intelligence</button>
-      <button id="settingsBtn" class="btn hidden">Settings</button>
+      <button id="settingsBtn" class="btn hidden">Model & Guardrails</button>
       <button id="authBtn" class="btn primary">Connect</button>
     </div>
   </header>
 
-  <main class="stage">
-    <section class="column left-col">
-      <div class="panel">
+  <main class="command-grid">
+    <section class="rail left-rail">
+      <div class="rail-heading"><span>YOU</span><small>PERSONAL DIGITAL TWIN</small></div>
+
+      <article class="panel trajectory-panel">
         <div class="panel-title"><span>Desired Future</span><span id="goalChip" class="chip">GOAL</span></div>
-        <div id="goalTitle" class="headline">Build a stronger future with better decisions.</div>
-        <div id="goalSummary" class="subtle">Connect your Personal Model to let PIOS continuously compare world changes against your goals, resources and constraints.</div>
-      </div>
+        <h1 id="goalTitle" class="goal-title">Build a stronger future with better decisions.</h1>
+        <p id="goalSummary" class="muted">Connect your Personal Model to let PIOS compare world changes against your goals, resources and constraints.</p>
+        <div id="strategyDelta" class="delta-note">No strategy history loaded.</div>
+      </article>
 
-      <div class="panel">
-        <div class="panel-title"><span>Capital Firewall</span><span class="chip">PROTECTED</span></div>
-        <div class="metric-grid">
-          <div class="metric"><div id="deployableCapital" class="v good">—</div><div class="l">Deployable</div></div>
-          <div class="metric"><div id="protectedCapital" class="v cyan">—</div><div class="l">Protected</div></div>
-          <div class="metric"><div id="riskPosture" class="v">—</div><div class="l">Risk Posture</div></div>
-          <div class="metric"><div id="attentionBudget" class="v">—</div><div class="l">Attention / Day</div></div>
+      <article class="panel">
+        <div class="panel-title"><span>Capital Firewall</span><span class="chip shield">PROTECTED</span></div>
+        <div class="metric-grid two">
+          <div class="metric"><div id="deployableCapital" class="metric-value good">—</div><div class="metric-label">Deployable</div></div>
+          <div class="metric"><div id="protectedCapital" class="metric-value cyan">—</div><div class="metric-label">Protected</div></div>
+          <div class="metric"><div id="riskPosture" class="metric-value small-value">—</div><div class="metric-label">Risk posture</div></div>
+          <div class="metric"><div id="attentionBudget" class="metric-value small-value">—</div><div class="metric-label">Attention / day</div></div>
         </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-title"><span>What Changed About You</span><span id="changeCount" class="chip">0</span></div>
+        <div id="changesList" class="empty-copy">No material Personal Graph changes loaded yet.</div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-title"><span>Intelligence Coverage</span><span id="moduleCount" class="chip">—</span></div>
+        <div class="legend-row"><span><i class="legend-dot live"></i>Live pilot</span><span><i class="legend-dot framework"></i>Framework</span><span><i class="legend-dot planned"></i>Planned</span></div>
+        <div id="moduleList" class="empty-copy">Connect to determine which intelligence domains are relevant to you.</div>
+      </article>
+    </section>
+
+    <section class="world-stage">
+      <div class="world-heading">
+        <div class="kicker">WORLD MODEL</div>
+        <div class="world-title">Global Intelligence Field</div>
+        <div id="globeStatus" class="world-subtitle">Rotating Earth active · connect to load personalized signals</div>
       </div>
 
-      <div class="panel">
-        <div class="panel-title"><span>What Changed</span><span id="changeCount" class="chip">0</span></div>
-        <div id="changesList" class="subtle">No personal-state changes loaded yet.</div>
+      <div class="globe-scene">
+        <div class="orbit orbit-a"></div>
+        <div class="orbit orbit-b"></div>
+        <div class="orbit orbit-c"></div>
+        <div class="globe-halo"></div>
+        <div id="globeWrap" class="globe-wrap"><svg id="globe" aria-label="Rotating PIOS world intelligence globe"></svg></div>
+        <div class="globe-badge top"><span class="pulse-dot"></span><span id="mappedSignalBadge">NO PERSONAL SIGNALS LOADED</span></div>
+        <div class="globe-badge bottom"><span id="unmappedSignalBadge">0 global / unresolved signals</span></div>
       </div>
 
-      <div class="panel">
-        <div class="panel-title"><span>Intelligence Modules</span><span id="moduleCount" class="chip">—</span></div>
-        <div id="moduleList" class="subtle">Connect to activate personalized modules.</div>
+      <article id="signalInspector" class="signal-inspector">
+        <div class="signal-kicker">WORLD SIGNAL</div>
+        <h2 id="signalTitle">No personalized signal selected</h2>
+        <div id="signalMeta" class="signal-meta">Connect PIOS to replace visual mode with evidence-backed world signals.</div>
+        <p id="signalSummary" class="muted">The Earth itself remains active in visual mode. Signal pulses appear only when PIOS has a real personalized record and a defensible location.</p>
+        <a id="signalSource" class="source-link hidden" href="#" target="_blank" rel="noopener noreferrer">Open source evidence ↗</a>
+      </article>
+
+      <div class="funnel" aria-label="PIOS attention shield funnel">
+        <div class="funnel-step"><b id="funnelSignals">0</b><span>signals processed</span></div>
+        <div class="funnel-arrow">→</div>
+        <div class="funnel-step"><b id="funnelCandidates">0</b><span>personal candidates</span></div>
+        <div class="funnel-arrow">→</div>
+        <div class="funnel-step"><b id="funnelMaterial">0</b><span>material</span></div>
+        <div class="funnel-arrow">→</div>
+        <div class="funnel-step"><b id="funnelScreened">0</b><span>screened out</span></div>
+        <div class="funnel-arrow">→</div>
+        <div class="funnel-step winner"><b id="funnelSurfaced">0</b><span>deserves attention</span></div>
       </div>
     </section>
 
-    <section class="globe-zone">
-      <div class="globe-label">
-        <div class="kicker">WORLD → PERSONAL CONSEQUENCE ENGINE</div>
-        <div class="title">Global Intelligence Field</div>
-      </div>
-      <div class="orbit o1"></div><div class="orbit o2"></div>
-      <div id="globeWrap" class="globe-wrap"><svg id="globe" aria-label="Rotating intelligence globe"></svg></div>
-      <div class="center-status"><span class="status-pill"><span class="pulse-dot"></span><span id="globeStatus">Scanning public world signals</span></span></div>
-    </section>
+    <section class="rail right-rail">
+      <div class="rail-heading"><span>STRATEGY</span><small>DECISION ENGINE</small></div>
 
-    <section class="column right-col">
-      <div class="panel next-move">
+      <article class="panel next-move">
         <div class="panel-title"><span>#1 Universal Next Move</span><span id="engineChip" class="chip">CORE</span></div>
-        <div id="decisionLabel" class="decision">CONNECT TO PERSONALIZE</div>
-        <div id="moveTitle" class="move-title">No personal strategy loaded yet.</div>
-        <div id="moveWhy" class="move-why">The globe is running in visual mode. Sign in to turn world signals into recommendations specific to you.</div>
-        <div id="moveMetrics" style="margin-top:12px"></div>
-        <div id="moveActions" class="dialog-actions"></div>
-      </div>
+        <div id="decisionLabel" class="decision-label">CONNECT TO PERSONALIZE</div>
+        <h2 id="moveTitle" class="move-title">No personal strategy loaded yet.</h2>
+        <p id="moveWhy" class="muted">PIOS is not going to invent a recommendation while it does not know your situation.</p>
+        <div id="moveMetrics" class="metric-bars"></div>
+        <div id="moveActions" class="action-row"></div>
+      </article>
 
-      <div class="panel">
+      <article class="panel">
         <div class="panel-title"><span>NOW → NEXT → LATER</span><span class="chip">SEQUENCE</span></div>
-        <div id="sequence" class="sequence"><div class="subtle">No dependency chain loaded.</div></div>
-      </div>
+        <div id="sequence" class="sequence"><div class="empty-copy">No dependency chain loaded.</div></div>
+      </article>
 
-      <div class="panel">
-        <div class="panel-title"><span>Alternatives</span><span id="altCount" class="chip">0</span></div>
-        <div id="alternatives" class="subtle">No alternatives ranked yet.</div>
-      </div>
+      <article class="panel">
+        <div class="panel-title"><span>Alternatives That Lost</span><span id="altCount" class="chip">0</span></div>
+        <div id="alternatives" class="empty-copy">No alternatives ranked yet.</div>
+      </article>
 
-      <div class="panel">
+      <article class="panel">
         <div class="panel-title"><span>Intelligence Health</span><span id="qualityGate" class="chip warn">PENDING</span></div>
-        <div class="metric-grid">
-          <div class="metric"><div id="signalsSeen" class="v cyan">0</div><div class="l">Signals Since Prior</div></div>
-          <div class="metric"><div id="screenedOut" class="v">0</div><div class="l">Screened Out</div></div>
-          <div class="metric"><div id="evidenceScore" class="v">—</div><div class="l">Evidence Quality</div></div>
-          <div class="metric"><div id="benchScore" class="v">—</div><div class="l">Benchmarks</div></div>
+        <div class="metric-grid two">
+          <div class="metric"><div id="signalsSeen" class="metric-value cyan">0</div><div class="metric-label">Signals since prior</div></div>
+          <div class="metric"><div id="screenedOut" class="metric-value">0</div><div class="metric-label">Screened out</div></div>
+          <div class="metric"><div id="evidenceScore" class="metric-value">—</div><div class="metric-label">Evidence quality</div></div>
+          <div class="metric"><div id="benchScore" class="metric-value">—</div><div class="metric-label">Benchmarks</div></div>
         </div>
-      </div>
+        <div id="healthNote" class="health-note">Benchmark release gate has not been loaded.</div>
+      </article>
     </section>
   </main>
 
   <footer class="ticker">
     <b>PIOS LIVE</b>
-    <div class="ticker-track" id="tickerTrack">
-      <span>World signals are continuously filtered for personal relevance.</span>
-      <span>High-impact actions require human approval.</span>
+    <div class="ticker-window"><div class="ticker-track" id="tickerTrack">
+      <span>PIOS filters the world for personal relevance rather than maximizing engagement.</span>
+      <span>High-impact and irreversible actions require human approval.</span>
       <span>Protected capital is excluded from deployable capital.</span>
-      <span>PIOS may recommend DO NOTHING when no option clears the threshold.</span>
-      <span>World signals are continuously filtered for personal relevance.</span>
-      <span>High-impact actions require human approval.</span>
-    </div>
+      <span>PIOS may recommend DO NOTHING.</span>
+      <span>PIOS filters the world for personal relevance rather than maximizing engagement.</span>
+    </div></div>
   </footer>
 </div>
 
 <div id="authOverlay" class="overlay hidden">
-  <div class="dialog">
-    <h2>Connect your Personal Model</h2>
-    <p>Sign in to replace visual mode with your real PIOS strategy. Private data sources remain opt-in.</p>
+  <div class="dialog auth-dialog">
+    <div class="dialog-eyebrow">SECURE ACCESS</div>
+    <h2>Connect your Personal Intelligence OS</h2>
+    <p class="muted">Sign in to replace visual mode with your real Personal Model and personalized world intelligence. Private data sources remain opt-in.</p>
     <div class="field"><label>Email</label><input id="email" type="email" autocomplete="email" /></div>
     <div class="field"><label>Password</label><input id="password" type="password" autocomplete="current-password" /></div>
-    <div id="authMessage" class="subtle" style="margin-top:10px"></div>
-    <div class="dialog-actions">
+    <div id="authMessage" class="form-message"></div>
+    <div class="action-row">
       <button id="signInBtn" class="btn primary">Sign in</button>
       <button id="signUpBtn" class="btn">Create account</button>
-      <button id="closeAuthBtn" class="btn">Close</button>
+      <button id="closeAuthBtn" class="btn ghost">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="onboardingOverlay" class="overlay hidden">
+  <div class="dialog onboarding-dialog">
+    <div class="onboarding-head">
+      <div class="ai-orb">PIOS</div>
+      <div><div class="dialog-eyebrow">PERSONAL MODEL SETUP</div><h2 id="onboardingQuestion">Where are you trying to go?</h2></div>
+    </div>
+    <p id="onboardingHint" class="muted">Describe the future you want PIOS to help you reach.</p>
+    <textarea id="onboardingInput" class="onboarding-input" rows="5"></textarea>
+    <div id="onboardingSpecial" class="hidden"></div>
+    <div class="onboarding-progress"><i id="onboardingProgress"></i></div>
+    <div class="action-row spread">
+      <button id="onboardingBackBtn" class="btn ghost">Back</button>
+      <span id="onboardingStepLabel" class="step-label">1 / 5</span>
+      <button id="onboardingNextBtn" class="btn primary">Continue</button>
     </div>
   </div>
 </div>
 
 <aside id="settingsDrawer" class="drawer hidden">
-  <button id="closeSettingsBtn" class="btn close">Close</button>
-  <h2>PIOS Settings</h2>
-  <div class="subtle">Tell PIOS what matters. The Earth command center remains the main product view.</div>
-  <hr class="divider" />
+  <div class="drawer-head"><div><div class="dialog-eyebrow">PERSONAL DIGITAL TWIN</div><h2>Model & Guardrails</h2></div><button id="closeSettingsBtn" class="btn ghost">Close</button></div>
+  <p class="muted">Fine-tune what PIOS knows. This is a control surface; the Earth command center remains the product home.</p>
+  <div class="section-label">Identity & direction</div>
   <div class="field"><label>Name</label><input id="displayName" /></div>
   <div class="field"><label>Home region</label><input id="homeRegion" placeholder="City, province/state, country" /></div>
   <div class="field"><label>Primary goal</label><textarea id="primaryGoal"></textarea></div>
   <div class="field"><label>Focus areas — one per line</label><textarea id="focusAreas"></textarea></div>
   <div class="field"><label>Capabilities — one per line</label><textarea id="capabilities"></textarea></div>
   <div class="field"><label>Constraints / guardrails — one per line</label><textarea id="constraints"></textarea></div>
-  <div class="field"><label>Risk posture</label><select id="riskSelect"><option>conservative</option><option selected>balanced</option><option>growth</option><option>aggressive</option></select></div>
-  <div class="field"><label>Attention minutes / day</label><input id="attentionInput" type="number" value="30" /></div>
-  <hr class="divider" />
-  <div class="field"><label>Cash</label><input id="cash" type="number" /></div>
-  <div class="field"><label>Taxes reserved</label><input id="taxesReserved" type="number" /></div>
-  <div class="field"><label>Payroll reserved</label><input id="payrollReserved" type="number" /></div>
-  <div class="field"><label>Emergency reserve</label><input id="emergencyReserve" type="number" /></div>
-  <div class="field"><label>Operating reserve</label><input id="operatingReserve" type="number" /></div>
-  <div class="field"><label>Debt</label><input id="debt" type="number" /></div>
-  <div class="dialog-actions">
+  <div class="field-grid">
+    <div class="field"><label>Risk posture</label><select id="riskSelect"><option>conservative</option><option selected>balanced</option><option>growth</option><option>aggressive</option></select></div>
+    <div class="field"><label>Attention minutes / day</label><input id="attentionInput" type="number" min="5" value="30" /></div>
+  </div>
+  <div class="section-label">Capital firewall</div>
+  <div class="field-grid">
+    <div class="field"><label>Cash</label><input id="cash" type="number" /></div>
+    <div class="field"><label>Taxes reserved</label><input id="taxesReserved" type="number" /></div>
+    <div class="field"><label>Payroll reserved</label><input id="payrollReserved" type="number" /></div>
+    <div class="field"><label>Emergency reserve</label><input id="emergencyReserve" type="number" /></div>
+    <div class="field"><label>Operating reserve</label><input id="operatingReserve" type="number" /></div>
+    <div class="field"><label>Debt</label><input id="debt" type="number" /></div>
+  </div>
+  <div class="action-row">
     <button id="saveSettingsBtn" class="btn primary">Save & Recalculate</button>
     <button id="signOutBtn" class="btn danger">Sign out</button>
   </div>
-  <div id="settingsMessage" class="subtle" style="margin-top:10px"></div>
+  <div id="settingsMessage" class="form-message"></div>
+</aside>
+
+<aside id="evidenceDrawer" class="drawer evidence-drawer hidden">
+  <div class="drawer-head"><div><div class="dialog-eyebrow">EVIDENCE TRACE</div><h2>Why PIOS believes this</h2></div><button id="closeEvidenceBtn" class="btn ghost">Close</button></div>
+  <p class="muted">Facts, external evidence, AI inference, assumptions and unknowns are kept separate.</p>
+  <div id="evidenceContent" class="evidence-content"><div class="empty-copy">No recommendation selected.</div></div>
 </aside>
 
 <div id="toast" class="toast hidden"></div>
