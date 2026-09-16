@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#020711" />
+  <title>PIOS — Personal Intelligence OS</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div class="brand-copy"><b>PIOS</b><span>PERSONAL INTELLIGENCE OS</span></div>
+    </div>
+    <div class="top-actions">
+      <span id="connectionStatus" class="status-pill">VISUAL MODE</span>
+      <button id="refreshBtn" class="btn hidden">Run Intelligence</button>
+      <button id="settingsBtn" class="btn hidden">Settings</button>
+      <button id="authBtn" class="btn primary">Connect</button>
+    </div>
+  </header>
+
+  <main class="stage">
+    <section class="column left-col">
+      <div class="panel">
+        <div class="panel-title"><span>Desired Future</span><span id="goalChip" class="chip">GOAL</span></div>
+        <div id="goalTitle" class="headline">Build a stronger future with better decisions.</div>
+        <div id="goalSummary" class="subtle">Connect your Personal Model to let PIOS continuously compare world changes against your goals, resources and constraints.</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title"><span>Capital Firewall</span><span class="chip">PROTECTED</span></div>
+        <div class="metric-grid">
+          <div class="metric"><div id="deployableCapital" class="v good">—</div><div class="l">Deployable</div></div>
+          <div class="metric"><div id="protectedCapital" class="v cyan">—</div><div class="l">Protected</div></div>
+          <div class="metric"><div id="riskPosture" class="v">—</div><div class="l">Risk Posture</div></div>
+          <div class="metric"><div id="attentionBudget" class="v">—</div><div class="l">Attention / Day</div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title"><span>What Changed</span><span id="changeCount" class="chip">0</span></div>
+        <div id="changesList" class="subtle">No personal-state changes loaded yet.</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title"><span>Intelligence Modules</span><span id="moduleCount" class="chip">—</span></div>
+        <div id="moduleList" class="subtle">Connect to activate personalized modules.</div>
+      </div>
+    </section>
+
+    <section class="globe-zone">
+      <div class="globe-label">
+        <div class="kicker">WORLD → PERSONAL CONSEQUENCE ENGINE</div>
+        <div class="title">Global Intelligence Field</div>
+      </div>
+      <div class="orbit o1"></div><div class="orbit o2"></div>
+      <div id="globeWrap" class="globe-wrap"><svg id="globe" aria-label="Rotating intelligence globe"></svg></div>
+      <div class="center-status"><span class="status-pill"><span class="pulse-dot"></span><span id="globeStatus">Scanning public world signals</span></span></div>
+    </section>
+
+    <section class="column right-col">
+      <div class="panel next-move">
+        <div class="panel-title"><span>#1 Universal Next Move</span><span id="engineChip" class="chip">CORE</span></div>
+        <div id="decisionLabel" class="decision">CONNECT TO PERSONALIZE</div>
+        <div id="moveTitle" class="move-title">No personal strategy loaded yet.</div>
+        <div id="moveWhy" class="move-why">The globe is running in visual mode. Sign in to turn world signals into recommendations specific to you.</div>
+        <div id="moveMetrics" style="margin-top:12px"></div>
+        <div id="moveActions" class="dialog-actions"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title"><span>NOW → NEXT → LATER</span><span class="chip">SEQUENCE</span></div>
+        <div id="sequence" class="sequence"><div class="subtle">No dependency chain loaded.</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title"><span>Alternatives</span><span id="altCount" class="chip">0</span></div>
+        <div id="alternatives" class="subtle">No alternatives ranked yet.</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title"><span>Intelligence Health</span><span id="qualityGate" class="chip warn">PENDING</span></div>
+        <div class="metric-grid">
+          <div class="metric"><div id="signalsSeen" class="v cyan">0</div><div class="l">Signals Since Prior</div></div>
+          <div class="metric"><div id="screenedOut" class="v">0</div><div class="l">Screened Out</div></div>
+          <div class="metric"><div id="evidenceScore" class="v">—</div><div class="l">Evidence Quality</div></div>
+          <div class="metric"><div id="benchScore" class="v">—</div><div class="l">Benchmarks</div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="ticker">
+    <b>PIOS LIVE</b>
+    <div class="ticker-track" id="tickerTrack">
+      <span>World signals are continuously filtered for personal relevance.</span>
+      <span>High-impact actions require human approval.</span>
+      <span>Protected capital is excluded from deployable capital.</span>
+      <span>PIOS may recommend DO NOTHING when no option clears the threshold.</span>
+      <span>World signals are continuously filtered for personal relevance.</span>
+      <span>High-impact actions require human approval.</span>
+    </div>
+  </footer>
+</div>
+
+<div id="authOverlay" class="overlay hidden">
+  <div class="dialog">
+    <h2>Connect your Personal Model</h2>
+    <p>Sign in to replace visual mode with your real PIOS strategy. Private data sources remain opt-in.</p>
+    <div class="field"><label>Email</label><input id="email" type="email" autocomplete="email" /></div>
+    <div class="field"><label>Password</label><input id="password" type="password" autocomplete="current-password" /></div>
+    <div id="authMessage" class="subtle" style="margin-top:10px"></div>
+    <div class="dialog-actions">
+      <button id="signInBtn" class="btn primary">Sign in</button>
+      <button id="signUpBtn" class="btn">Create account</button>
+      <button id="closeAuthBtn" class="btn">Close</button>
+    </div>
+  </div>
+</div>
+
+<aside id="settingsDrawer" class="drawer hidden">
+  <button id="closeSettingsBtn" class="btn close">Close</button>
+  <h2>PIOS Settings</h2>
+  <div class="subtle">Tell PIOS what matters. The Earth command center remains the main product view.</div>
+  <hr class="divider" />
+  <div class="field"><label>Name</label><input id="displayName" /></div>
+  <div class="field"><label>Home region</label><input id="homeRegion" placeholder="City, province/state, country" /></div>
+  <div class="field"><label>Primary goal</label><textarea id="primaryGoal"></textarea></div>
+  <div class="field"><label>Focus areas — one per line</label><textarea id="focusAreas"></textarea></div>
+  <div class="field"><label>Capabilities — one per line</label><textarea id="capabilities"></textarea></div>
+  <div class="field"><label>Constraints / guardrails — one per line</label><textarea id="constraints"></textarea></div>
+  <div class="field"><label>Risk posture</label><select id="riskSelect"><option>conservative</option><option selected>balanced</option><option>growth</option><option>aggressive</option></select></div>
+  <div class="field"><label>Attention minutes / day</label><input id="attentionInput" type="number" value="30" /></div>
+  <hr class="divider" />
+  <div class="field"><label>Cash</label><input id="cash" type="number" /></div>
+  <div class="field"><label>Taxes reserved</label><input id="taxesReserved" type="number" /></div>
+  <div class="field"><label>Payroll reserved</label><input id="payrollReserved" type="number" /></div>
+  <div class="field"><label>Emergency reserve</label><input id="emergencyReserve" type="number" /></div>
+  <div class="field"><label>Operating reserve</label><input id="operatingReserve" type="number" /></div>
+  <div class="field"><label>Debt</label><input id="debt" type="number" /></div>
+  <div class="dialog-actions">
+    <button id="saveSettingsBtn" class="btn primary">Save & Recalculate</button>
+    <button id="signOutBtn" class="btn danger">Sign out</button>
+  </div>
+  <div id="settingsMessage" class="subtle" style="margin-top:10px"></div>
+</aside>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>
