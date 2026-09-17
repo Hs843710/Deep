@@ -159,7 +159,14 @@
     if(c!=null) bits.push(`confidence ${c}%`);
     box.innerHTML='';
     const label=document.createElement('span'); label.textContent=exact?'WHY THIS DRIVES YOUR #1 MOVE':'WHY YOU';
-    const body=document.createElement('b'); body.textContent=exact ? `${currentContext?.candidate?.why_you || 'This signal is directly linked to your current top recommendation.'}${bits.length?' · '+bits.join(' · '):''}` : (bits.length ? `PIOS kept this signal because ${bits.join(' · ')}.` : 'This signal is in your current personalized attention set.');
+    const body=document.createElement('b');
+    if(exact){
+      body.textContent=`${currentContext?.candidate?.why_you || 'This signal is directly linked to your current top recommendation.'}${bits.length?' · '+bits.join(' · '):''}`;
+    }else if(signal.why_you){
+      body.textContent=`${signal.why_you}${bits.length?' · '+bits.join(' · '):''}`;
+    }else{
+      body.textContent=bits.length ? `PIOS kept this signal because ${bits.join(' · ')}.` : 'This signal is in your current personalized attention set.';
+    }
     box.append(label,body);
   }
 
