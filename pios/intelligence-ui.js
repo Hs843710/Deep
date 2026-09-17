@@ -68,6 +68,12 @@
     return money(low ?? high,currency);
   }
 
+  function signalForContext(ctx){
+    const s=ctx?.signal,c=ctx?.candidate;
+    if(!s)return null;
+    return {...s,relevance_score:c?.scores?.relevance,confidence_score:c?.scores?.confidence,impact_score:c?.scores?.impact,module_code:c?.module_code,world_role:'strategy_trigger'};
+  }
+
   function renderContext(ctx){
     ensureShell();
     currentContext = ctx;
@@ -95,7 +101,7 @@
         else source.classList.add('hidden');
       }
       if(view){ view.classList.remove('hidden'); view.onclick=()=>{
-        const signalForUI={...s,relevance_score:c?.scores?.relevance,confidence_score:c?.scores?.confidence,impact_score:c?.scores?.impact,module_code:c?.module_code};
+        const signalForUI=signalForContext(ctx);
         if(typeof window.showSignal==='function') window.showSignal(signalForUI);
         $('signalInspector')?.scrollIntoView({behavior:'smooth',block:'center'});
       };}
@@ -141,6 +147,8 @@
     try{
       const ctx = await window.api('/functions/v1/recommendation-context');
       renderContext(ctx);
+      const trigger=signalForContext(ctx);
+      if(trigger && typeof window.showSignal==='function') window.showSignal(trigger);
     }catch(e){
       ensureShell();
       if($('contextFreshness')) $('contextFreshness').textContent='CONTEXT TEMPORARILY UNAVAILABLE';
