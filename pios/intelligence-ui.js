@@ -127,7 +127,10 @@
     if(c?.time_required_hours!=null) pieces.push(metricPill('Time required',Number(c.time_required_hours).toLocaleString()+'h',''));
     if(deadlineDays!=null) pieces.push(metricPill('Window',deadlineDays < 0 ? 'Past' : `${deadlineDays}d`,''));
     if(c?.eligibility_status) pieces.push(metricPill('Eligibility',text(c.eligibility_status).replaceAll('_',' ').toUpperCase(),''));
-    if(ev?.facts!=null) pieces.push(metricPill('Evidence',`${ev.facts} facts · ${ev.sources||0} sources`,''));
+    if(ev?.facts!=null){
+      const evidenceText=ev.scope==='internal_diagnostic' ? `${ev.facts} personal facts · internal diagnostic` : `${ev.facts} facts · ${ev.sources||0} sources`;
+      pieces.push(metricPill('Evidence',evidenceText,''));
+    }
     if($('contextNumbers')) $('contextNumbers').innerHTML = pieces.filter(Boolean).join('');
 
     document.querySelectorAll('[data-decision="approve"]').forEach(btn=>btn.textContent='Approve next step');
