@@ -40,17 +40,15 @@ jobs:
                   html = html.replace(css_needle, css_needle + '\n  ' + tag)
                   css_needle = tag
           script_needle = '<script src="./app.js"></script>'
-          scripts = ['session-guard.js','app.js','product-guard.js','intelligence-ui.js','outcome-ui.js','twin-ui.js']
+          scripts = ['session-guard.js','app.js','product-guard.js','intelligence-ui.js','outcome-ui.js','twin-ui.js','alignment-ui.js']
           if 'session-guard.js' not in html:
               block='\n'.join(f'<script src="./{s}"></script>' for s in scripts)
               html = html.replace(script_needle, block)
           else:
-              anchor='<script src="./outcome-ui.js"></script>'
-              if 'twin-ui.js' not in html:
-                  if anchor in html:
-                      html = html.replace(anchor, anchor+'\n<script src="./twin-ui.js"></script>')
-                  else:
-                      html = html.replace('</body>', '<script src="./twin-ui.js"></script>\n</body>')
+              for s in ['intelligence-ui.js','outcome-ui.js','twin-ui.js','alignment-ui.js']:
+                  tag=f'<script src="./{s}"></script>'
+                  if tag not in html:
+                      html = html.replace('</body>', tag+'\n</body>')
           page.write_text(html)
           PY
       - name: Configure Pages
