@@ -33,20 +33,24 @@ jobs:
           page = Path('pios/index.html')
           html = page.read_text()
           css_needle = '<link rel="stylesheet" href="./styles.css" />'
-          css_links = '\n  <link rel="stylesheet" href="./intelligence-ui.css" />\n  <link rel="stylesheet" href="./outcome-ui.css" />'
-          if 'intelligence-ui.css' not in html:
-              html = html.replace(css_needle, css_needle + css_links)
-          elif 'outcome-ui.css' not in html:
-              html = html.replace('<link rel="stylesheet" href="./intelligence-ui.css" />', '<link rel="stylesheet" href="./intelligence-ui.css" />\n  <link rel="stylesheet" href="./outcome-ui.css" />')
+          css_files = ['intelligence-ui.css','outcome-ui.css','twin-ui.css']
+          for css in css_files:
+              tag = f'<link rel="stylesheet" href="./{css}" />'
+              if tag not in html:
+                  html = html.replace(css_needle, css_needle + '\n  ' + tag)
+                  css_needle = tag
           script_needle = '<script src="./app.js"></script>'
-          scripts = '<script src="./session-guard.js"></script>\n<script src="./app.js"></script>\n<script src="./product-guard.js"></script>\n<script src="./intelligence-ui.js"></script>\n<script src="./outcome-ui.js"></script>'
+          scripts = ['session-guard.js','app.js','product-guard.js','intelligence-ui.js','outcome-ui.js','twin-ui.js']
           if 'session-guard.js' not in html:
-              html = html.replace(script_needle, scripts)
+              block='\n'.join(f'<script src="./{s}"></script>' for s in scripts)
+              html = html.replace(script_needle, block)
           else:
-              if 'intelligence-ui.js' not in html:
-                  html = html.replace('<script src="./product-guard.js"></script>', '<script src="./product-guard.js"></script>\n<script src="./intelligence-ui.js"></script>')
-              if 'outcome-ui.js' not in html:
-                  html = html.replace('<script src="./intelligence-ui.js"></script>', '<script src="./intelligence-ui.js"></script>\n<script src="./outcome-ui.js"></script>')
+              anchor='<script src="./outcome-ui.js"></script>'
+              if 'twin-ui.js' not in html:
+                  if anchor in html:
+                      html = html.replace(anchor, anchor+'\n<script src="./twin-ui.js"></script>')
+                  else:
+                      html = html.replace('</body>', '<script src="./twin-ui.js"></script>\n</body>')
           page.write_text(html)
           PY
       - name: Configure Pages
