@@ -55,14 +55,14 @@
   function renderTwin(data){
     ensureShell();
     const t=data?.digital_twin||{};
-    const chip=$('twinCompletenessChip');if(chip){chip.textContent=`CORE ${Number(t.model_completeness_pct||0)}%`;chip.title='Coverage of core Personal Model components, not total knowledge about you and not a judgment about you.';}
+    const chip=$('twinCompletenessChip');if(chip){chip.textContent=`CORE DATA ${Number(t.model_completeness_pct||0)}%`;chip.title='Coverage of core Personal Model inputs. This is not goal progress, intelligence quality, or a judgment about you.';}
     renderProgress(t.primary_goal);
-    const b=t.bottleneck||{};if($('twinBottleneck'))$('twinBottleneck').innerHTML=`<span>PRIMARY BOTTLENECK</span><b>${esc(b.title||'No dominant bottleneck detected')}</b><p>${esc(b.detail||'PIOS does not currently have enough evidence to identify one dominant constraint.')}</p>`;
+    const b=t.bottleneck||{};if($('twinBottleneck'))$('twinBottleneck').innerHTML=`<span>PRIMARY BOTTLENECK</span><b>${esc(b.title||'Bottleneck not identified yet')}</b><p>${esc(b.detail||'PIOS does not currently have enough evidence to identify one dominant constraint.')}</p>`;
     renderFinance(t.current_state||{});
     const evo=t.strategy_evolution||{};if($('twinEvolution'))$('twinEvolution').innerHTML=`<span>${evo.changed?'WHY STRATEGY CHANGED':'STRATEGY TRAJECTORY'}</span><b>${esc(evo.why_changed||'No prior strategy snapshot exists yet.')}</b>${evo.previous&&evo.current?`<small>${esc(evo.previous.title||evo.previous.decision||'Previous')} → ${esc(evo.current.title||evo.current.decision||'Current')}</small>`:''}`;
     if($('strategyDelta')&&evo.why_changed)$('strategyDelta').textContent=evo.why_changed;
     const facts=t.current_state?.facts||[];if($('twinFacts'))$('twinFacts').innerHTML=facts.slice(0,6).map(f=>`<div><span>${esc(f.label)}</span><b>${f.currency?esc(money(f.value,f.currency)):esc(f.value)}</b></div>`).join('');
-    const unknowns=t.unknowns||[];if($('twinUnknowns'))$('twinUnknowns').innerHTML=unknowns.length?`<div class="twin-unknown-head">WHAT PIOS STILL DOESN'T KNOW</div>${unknowns.slice(0,3).map(x=>`<div class="twin-unknown">${esc(x)}</div>`).join('')}`:'<div class="twin-known">Core Personal Model coverage is currently complete.</div>';
+    const unknowns=t.unknowns||[];if($('twinUnknowns'))$('twinUnknowns').innerHTML=unknowns.length?`<div class="twin-unknown-head">WHAT PIOS STILL DOESN'T KNOW</div>${unknowns.slice(0,3).map(x=>`<div class="twin-unknown">${esc(x)}</div>`).join('')}`:'<div class="twin-known">Core Personal Model inputs currently have full coverage.</div>';
     renderChanges(t.recent_changes||[]);
   }
 
