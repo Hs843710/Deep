@@ -33,14 +33,20 @@ jobs:
           page = Path('pios/index.html')
           html = page.read_text()
           css_needle = '<link rel="stylesheet" href="./styles.css" />'
+          css_links = '\n  <link rel="stylesheet" href="./intelligence-ui.css" />\n  <link rel="stylesheet" href="./outcome-ui.css" />'
           if 'intelligence-ui.css' not in html:
-              html = html.replace(css_needle, css_needle + '\n  <link rel="stylesheet" href="./intelligence-ui.css" />')
+              html = html.replace(css_needle, css_needle + css_links)
+          elif 'outcome-ui.css' not in html:
+              html = html.replace('<link rel="stylesheet" href="./intelligence-ui.css" />', '<link rel="stylesheet" href="./intelligence-ui.css" />\n  <link rel="stylesheet" href="./outcome-ui.css" />')
           script_needle = '<script src="./app.js"></script>'
-          scripts = '<script src="./session-guard.js"></script>\n<script src="./app.js"></script>\n<script src="./product-guard.js"></script>\n<script src="./intelligence-ui.js"></script>'
+          scripts = '<script src="./session-guard.js"></script>\n<script src="./app.js"></script>\n<script src="./product-guard.js"></script>\n<script src="./intelligence-ui.js"></script>\n<script src="./outcome-ui.js"></script>'
           if 'session-guard.js' not in html:
               html = html.replace(script_needle, scripts)
-          elif 'intelligence-ui.js' not in html:
-              html = html.replace('<script src="./product-guard.js"></script>', '<script src="./product-guard.js"></script>\n<script src="./intelligence-ui.js"></script>')
+          else:
+              if 'intelligence-ui.js' not in html:
+                  html = html.replace('<script src="./product-guard.js"></script>', '<script src="./product-guard.js"></script>\n<script src="./intelligence-ui.js"></script>')
+              if 'outcome-ui.js' not in html:
+                  html = html.replace('<script src="./intelligence-ui.js"></script>', '<script src="./intelligence-ui.js"></script>\n<script src="./outcome-ui.js"></script>')
           page.write_text(html)
           PY
       - name: Configure Pages
