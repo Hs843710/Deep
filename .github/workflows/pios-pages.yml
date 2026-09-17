@@ -32,10 +32,15 @@ jobs:
           from pathlib import Path
           page = Path('pios/index.html')
           html = page.read_text()
-          needle = '<script src="./app.js"></script>'
-          replacement = '<script src="./session-guard.js"></script>\n<script src="./app.js"></script>\n<script src="./product-guard.js"></script>'
+          css_needle = '<link rel="stylesheet" href="./styles.css" />'
+          if 'intelligence-ui.css' not in html:
+              html = html.replace(css_needle, css_needle + '\n  <link rel="stylesheet" href="./intelligence-ui.css" />')
+          script_needle = '<script src="./app.js"></script>'
+          scripts = '<script src="./session-guard.js"></script>\n<script src="./app.js"></script>\n<script src="./product-guard.js"></script>\n<script src="./intelligence-ui.js"></script>'
           if 'session-guard.js' not in html:
-              html = html.replace(needle, replacement)
+              html = html.replace(script_needle, scripts)
+          elif 'intelligence-ui.js' not in html:
+              html = html.replace('<script src="./product-guard.js"></script>', '<script src="./product-guard.js"></script>\n<script src="./intelligence-ui.js"></script>')
           page.write_text(html)
           PY
       - name: Configure Pages
