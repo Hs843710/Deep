@@ -55,7 +55,7 @@
   function renderTwin(data){
     ensureShell();
     const t=data?.digital_twin||{};
-    const chip=$('twinCompletenessChip');if(chip){chip.textContent=`${Number(t.model_completeness_pct||0)}% MODEL`;chip.title='Coverage of core Personal Model components, not a judgment about you.';}
+    const chip=$('twinCompletenessChip');if(chip){chip.textContent=`CORE ${Number(t.model_completeness_pct||0)}%`;chip.title='Coverage of core Personal Model components, not total knowledge about you and not a judgment about you.';}
     renderProgress(t.primary_goal);
     const b=t.bottleneck||{};if($('twinBottleneck'))$('twinBottleneck').innerHTML=`<span>PRIMARY BOTTLENECK</span><b>${esc(b.title||'No dominant bottleneck detected')}</b><p>${esc(b.detail||'PIOS does not currently have enough evidence to identify one dominant constraint.')}</p>`;
     renderFinance(t.current_state||{});
