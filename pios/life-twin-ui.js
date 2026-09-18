@@ -52,15 +52,15 @@
   }
 
   function render(){
-    ensureShell();const t=twinData?.digital_twin||{},state=t.current_state||{},goal=t.primary_goal||{},p=goal.progress||{},op=operatingData||t.operating_memory||{},s=op.summary||{},gt=op.goal_tracking||{},capital=state.capital||{},counts=t.counts||{},profile=state.profile||{};
+    ensureShell();const t=twinData?.digital_twin||{},state=t.current_state||{},goal=t.primary_goal||{},p=goal.progress||{},op=operatingData||t.operating_memory||{},s=op.summary||{},gt=op.goal_tracking||{},capital=state.capital||{},counts=t.counts||{},profile=state.profile||{},commitments=state.commitments||{},sources=state.sources||[];
     const projectCurrent=gt.projects?.current??p.current??0,projectTarget=gt.projects?.target??p.target??'—',goalPct=p.progress_pct??gt.projects?.progress_pct??0;
     setNode('lifeGoal',`${projectCurrent}/${projectTarget}`,`${Number(goalPct||0).toFixed(0)}% complete`,Number(goalPct||0)>0?'good':'known');
     setNode('lifeBusiness',`${s.open||0} open`,`${s.quoted||0} quoted · ${s.won||0} won`,(operatingData?.records||[]).length?'known':'unknown');
     setNode('lifeProjects',`${s.won||0} won`,`${s.open||0} active pipeline`,s.won>0?'good':s.open>0?'known':'unknown');
     setNode('lifeFinance',money(capital.deployable,capital.currency||'CAD'),`${money(capital.protected_amount,capital.currency||'CAD')} protected`,capital.deployable!=null?'good':'unknown');
-    setNode('lifeTime',profile.attention_budget_minutes!=null?`${profile.attention_budget_minutes}m/day`:'—','attention budget',profile.attention_budget_minutes!=null?'known':'unknown');
+    setNode('lifeTime',profile.attention_budget_minutes!=null?`${profile.attention_budget_minutes}m/day`:'—',commitments.next_7_days? `${commitments.next_7_days} commitment${commitments.next_7_days===1?'':'s'} next 7d` : 'no connected-calendar commitments next 7d',profile.attention_budget_minutes!=null?'known':'unknown');
     setNode('lifeCapabilities',String(counts.capabilities??0),'recorded capabilities',(counts.capabilities||0)>0?'good':'unknown');
-    setNode('lifeAssets',String(counts.resources??0),'recorded assets',(counts.resources||0)>0?'known':'unknown');
+    setNode('lifeAssets',String(counts.resources??0),`${counts.connected_sources??sources.length} connected source${(counts.connected_sources??sources.length)===1?'':'s'}`,(counts.resources||0)>0?'known':'unknown');
     const b=op.bottleneck||t.bottleneck||{};setNode('lifeBottleneck',b.type==='none'||!b.type?'UNKNOWN':String(b.title||b.type).replace(/Bottleneck not identified yet/i,'UNVERIFIED').slice(0,20),b.type==='none'?'needs operating evidence':String(b.type||'constraint').replaceAll('_',' '),b.type==='none'||!b.type?'unknown':'warn');
     $('lifeCoreAnchor').textContent=profile.home_region||'PERSONAL MODEL';$('lifeCoreState').textContent=`${Number(goalPct||0).toFixed(0)}% goal progress`;
     $('lifeTwinStatus').textContent=t.model_completeness_pct!=null?`CORE MODEL ${t.model_completeness_pct}%`:'LIVE PERSONAL STATE';$('lifeTwinUpdated').textContent=`updated ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
@@ -69,15 +69,15 @@
 
   function detailRows(rows){return `<div class="life-detail-grid">${rows.filter(x=>x&&x[1]!=null).map(([k,v])=>`<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('')}</div>`}
   function showDetail(type){
-    const t=twinData?.digital_twin||{},state=t.current_state||{},goal=t.primary_goal||{},p=goal.progress||{},op=operatingData||t.operating_memory||{},s=op.summary||{},gt=op.goal_tracking||{},capital=state.capital||{},counts=t.counts||{},b=op.bottleneck||t.bottleneck||{},box=$('lifeTwinDetail');if(!box)return;
+    const t=twinData?.digital_twin||{},state=t.current_state||{},goal=t.primary_goal||{},p=goal.progress||{},op=operatingData||t.operating_memory||{},s=op.summary||{},gt=op.goal_tracking||{},capital=state.capital||{},counts=t.counts||{},commitments=state.commitments||{},sources=state.sources||[],b=op.bottleneck||t.bottleneck||{},box=$('lifeTwinDetail');if(!box)return;
     let title='',sub='',rows=[];
     if(type==='goal'){title=goal.title||'Primary goal';sub='GOAL CONTRACT';rows=[['Progress',p.available?`${p.current} / ${p.target} ${p.unit||''}`:'—'],['Contract value',gt.contract_value?.target!=null?`${money(gt.contract_value.current||0)} / ${money(gt.contract_value.target)}`:'—'],['Margin floor',gt.margin?.minimum!=null?`≥${gt.margin.minimum}%`:'—'],['Deadline',goal.target_date?fmtDate(goal.target_date):'—'],['Days left',goal.target_date?daysLeft(goal.target_date):'—']];}
     else if(type==='business'){title='Business operating state';sub='CURRENT STATE';rows=[['Open',s.open||0],['Qualified',s.qualified||0],['Quoted',s.quoted||0],['Won',s.won||0],['Win rate',s.win_rate==null?'—':`${Number(s.win_rate).toFixed(1)}%`]];}
     else if(type==='projects'){title='Project pipeline';sub='OPERATING MEMORY';rows=[['Leads',s.leads||0],['Estimating',s.estimating||0],['Submitted',s.submitted||0],['Won value',money(s.won_contract_value||0)],['Gross profit',money(s.gross_profit||0)]];}
     else if(type==='finance'){title='Capital state';sub='CAPITAL FIREWALL';rows=[['Liquid',money(capital.liquid,capital.currency||'CAD')],['Protected',money(capital.protected_amount,capital.currency||'CAD')],['Deployable',money(capital.deployable,capital.currency||'CAD')],['Debt',money(capital.debt,capital.currency||'CAD')]];}
-    else if(type==='time'){title='Attention capacity';sub='TIME';rows=[['Daily budget',`${state.profile?.attention_budget_minutes??'—'} min`],['Estimator hours',`${Number(s.estimator_hours||0).toLocaleString()}h recorded`]];}
+    else if(type==='time'){title='Attention & commitments';sub='TIME';rows=[['Daily budget',`${state.profile?.attention_budget_minutes??'—'} min`],['Next 7 days',commitments.next_7_days??0],['Upcoming modeled',commitments.active_count??0],['Estimator hours',`${Number(s.estimator_hours||0).toLocaleString()}h recorded`]];}
     else if(type==='capabilities'){title='Capabilities';sub='EXECUTION CAPACITY';rows=[['Recorded',counts.capabilities??0],['Model coverage',`${t.model_completeness_pct??0}%`]];}
-    else if(type==='assets'){title='Assets & resources';sub='RESOURCE MODEL';rows=[['Recorded assets',counts.resources??0],['Status',(counts.resources||0)>0?'available to reasoning':'not yet modeled']];}
+    else if(type==='assets'){title='Assets, resources & sources';sub='RESOURCE MODEL';rows=[['Recorded resources',counts.resources??0],['Connected sources',counts.connected_sources??sources.length],['Source evidence',sources.reduce((a,x)=>a+Number(x.evidence_count||0),0)],['Status',(counts.resources||0)>0?'available to reasoning':'not yet modeled']];}
     else {title=b.title||'Bottleneck unverified';sub='BINDING CONSTRAINT';rows=[['Type',b.type||'unknown'],['Evidence',(operatingData?.records||[]).length?`${(operatingData.records||[]).length} operating records`:'insufficient operating data']];}
     box.innerHTML=`<span>${esc(sub)}</span><b>${esc(title)}</b>${detailRows(rows)}`;
     document.querySelectorAll('[data-life-node]').forEach(n=>n.classList.toggle('selected',n.dataset.lifeNode===type));
