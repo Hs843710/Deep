@@ -202,8 +202,30 @@ async function bootConnected(){
 }
 function setVisualMode(){$('connectionStatus').textContent='VISUAL MODE';$('connectionStatus').classList.remove('good');$('authBtn').textContent='Connect';$('authBtn').onclick=openAuth;$('refreshBtn').classList.add('hidden');$('settingsBtn').classList.add('hidden');$('globeStatus').textContent='Rotating Earth active · connect to load personalized signals';if(globeController)globeController.setSignals([])}
 
+function initFallbackGlobe(){
+  const svg=$('globe');if(!svg)return{setSignals(){}};
+  svg.setAttribute('viewBox','0 0 700 700');
+  svg.innerHTML=`<defs><radialGradient id="fallbackGlow"><stop offset="0%" stop-color="#0a4053"/><stop offset="72%" stop-color="#031726"/><stop offset="100%" stop-color="#020b13"/></radialGradient></defs>
+    <circle cx="350" cy="350" r="287" fill="url(#fallbackGlow)" stroke="#36daf2" stroke-width="2"/>
+    <g fill="none" stroke="#0f5368" stroke-width="1" opacity=".72">
+      <ellipse cx="350" cy="350" rx="287" ry="92"/><ellipse cx="350" cy="350" rx="287" ry="178"/>
+      <ellipse cx="350" cy="350" rx="92" ry="287"/><ellipse cx="350" cy="350" rx="178" ry="287"/>
+      <path d="M64 350h572M350 63v574"/>
+    </g>
+    <g fill="#0a4053" stroke="#2ed5eb" stroke-width="2" opacity=".96">
+      <path d="M170 210l48-38 71 8 39 34-22 28-41 7-26 37-51-11-35-32z"/>
+      <path d="M280 315l37 10 22 40-18 64-30 58-26-21 8-61-24-49z"/>
+      <path d="M366 193l59-24 86 17 48 41-19 34-67 8-37 34-53-15-24-46z"/>
+      <path d="M410 303l54 5 50 44-12 74-45 64-32-21 8-54-28-53z"/>
+      <path d="M525 438l45-7 35 25-9 32-47 11-27-27z"/>
+    </g>
+    <circle cx="350" cy="350" r="298" fill="none" stroke="#2fe7ff" stroke-width="1" opacity=".35"/>`;
+  $('globeStatus').textContent='Digital Earth fallback active · intelligence remains available';
+  return{setSignals(){}};
+}
+
 function initGlobe(){
-  if(typeof d3==='undefined'){ $('globeStatus').textContent='Globe renderer unavailable';return null }
+  if(typeof d3==='undefined')return initFallbackGlobe();
   const svg=d3.select('#globe'),W=700,H=700;svg.attr('viewBox',`0 0 ${W} ${H}`);
   const projection=d3.geoOrthographic().translate([W/2,H/2]).scale(288).clipAngle(90).precision(.35);const path=d3.geoPath(projection);const root=svg.append('g');
   const sphere=root.append('path').datum({type:'Sphere'}).attr('class','sphere');const graticule=root.append('path').datum(d3.geoGraticule10()).attr('class','graticule');const landPath=root.append('path').attr('class','land');const signalLayer=root.append('g');let land=null,signals=[],angle=-35,tilt=-17,last=performance.now(),dragging=false;
