@@ -22,5 +22,7 @@ assert.ok(presence.includes("w?.is_current"),"stale prepared artifacts cannot be
 assert.ok(presence.includes("external_message_sent"),"draft state must keep external contact distinguishable");
 assert.ok(presence.includes("Prepare quotation follow-up"),"a relevant person can trigger internal preparation directly");
 assert.ok(presence.includes("result?.prepared&&currentWork()"),"the interface cannot claim completed work until it reloads the stored artifact");
+assert.ok(presence.includes("autoPreparedForToken!==token"),"safe preparation should run at most once per connected session");
+assert.ok(presence.includes("prep?.prepared&&localStorage.getItem('pios_token')===token"),"auto preparation may display results only for the same session");
 assert.ok(presence.includes("does not establish a continuous watch"),"no unconfigured always-on monitoring claims");
 console.log("PASS ambient executive presence: core Earth/Connect preserved, honest work status, guarded preparation and focused home");
