@@ -35,4 +35,14 @@ assert.equal(clear.chief_of_staff.next_move.detail,"Verify quote status");
 assert.ok(clear.chief_of_staff.next_move.approval_required);
 const noTime=build({...base,profile:{},operating:[op],finance:null});
 assert.ok(noTime.specialists.find(x=>x.id==="time").headline.includes("empty calendar"));
-console.log("PASS 7 executive-council tests: economics conflict, capital guard, margin guard, quiet relevance, missing goal, approval boundary, unknown capacity");
+const recordedLate=build({...base,personalValue:null,candidate:null,
+  commitments:[{due_at:"2026-09-16T18:00:00Z",status:"waiting"}]});
+assert.equal(recordedLate.mode,"brief","recorded overdue commitments should be evaluated without a world signal");
+assert.equal(recordedLate.chief_of_staff.escalation,"commitment");
+const unrelatedCareer=build({...base,goals:[{id:"career",domain:"career_income",title:"Build skills",status:"active"}],personalValue:null,candidate:null});
+assert.ok(unrelatedCareer.specialists.some(x=>x.id==="career"),"relevant career adviser should exist");
+assert.equal(unrelatedCareer.chief_of_staff.interruption_warranted,false);
+const property=build({...base,goals:[{id:"prop",domain:"real_estate",title:"Maintain property",status:"active"}],personalValue:null,candidate:null});
+assert.ok(property.specialists.some(x=>x.id==="property"),"real estate goals should activate a property adviser");
+
+console.log("PASS 10 executive-council tests: economics conflict, capital guard, margin guard, quiet relevance, missing goal, approval boundary, unknown capacity");
