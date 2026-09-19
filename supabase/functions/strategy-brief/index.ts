@@ -84,5 +84,32 @@ if(next?.candidate_id){
     }
   }catch(e){personalization={ok:false,error:String(e).slice(0,250)}}
 }
+let executiveCouncil:any=null,executiveCouncilApplied=false;
+if(next?.candidate_id){
+  try{
+    const cr=await call('executive-council',auth,{candidate_id:next.candidate_id});
+    if(cr?.ok&&cr.council&&cr.council.candidate_id===next.candidate_id){
+      executiveCouncil=cr.council;
+      const chief=cr.council.chief_of_staff||{};
+      const trace={version:cr.council.version,mode:cr.council.mode,headline:chief.headline||null,
+        specialist_states:(cr.council.adviser_states||[]).slice(0,8),
+        conflict_count:(chief.conflicts||[]).length,escalation:chief.escalation||'none',
+        next_move:chief.next_move?{kind:chief.next_move.kind,title:chief.next_move.title,approval_required:chief.next_move.approval_required===true}:null};
+      if(cr.council.mode==='blocked'){
+        next={...next,decision:'DIAGNOSE',strategy_path:'UNKNOWN_TO_LEARN',
+          action:chief.next_move?.detail||'Resolve the documented constraint before committing resources.',
+          why:'Executive Council: '+(chief.reason||'An evidence-backed financial or capacity guardrail blocks commitment.'),
+          executive_council:trace};sequence=null;executiveCouncilApplied=true;
+      }else if(cr.council.mode==='brief'&&chief.next_move&&chief.escalation!=='commitment'&&personalization?.surface===true){
+        const verify=chief.next_move.kind==='verify';
+        next={...next,decision:verify?'INVESTIGATE':next.decision,
+          action:chief.next_move.detail||next.action,
+          why:'Executive Council: '+(chief.reason||'Relevant specialists reconciled this decision against your current model.'),
+          executive_council:trace};
+        executiveCouncilApplied=true;
+      }else next={...next,executive_council:trace};
+    }
+  }catch(e){executiveCouncil={error:String(e).slice(0,200)}}
+}
 if(sequence?.steps?.length){const mods=sequence.steps.map((x:any)=>String(x.module_code||''));if(mods.some((m:string)=>m&&!active.has(m)))sequence=null}
-const shield={...(strat.attention_shield||{}),surfaced:validPortfolio.length+(proactive?1:0),suppressed:Math.max(Number(strat.attention_shield?.suppressed||0),Math.max(0,Number(strat.attention_shield?.input_candidates||0)-validPortfolio.length))};return J({...base,strategy:{...strat,next_best_move:next,sequence,portfolio:validPortfolio,horizons,attention_shield:shield},alignment_guard:{version:'decision_engine_v10_counterfactual_simulation',replaced_inactive_top:replaced,proactive_fallback:proactive,owned_pipeline_priority_applied:pipelinePriority,evidence_tiebreak_applied:tieBreak,cognitive_override_applied:cognitiveOverride,reasoning_override_applied:reasoningOverride,simulation_override_applied:simulationOverride,personalization_suppressed:personalizationSuppressed,personalization_status:personalization?.status||'unverified',personalization_version:personalization?.version||null,cognitive_engine:cognition?.engine_version||null,reasoning_engine:reasoning?.reasoning_version||null,simulation_engine:simulation?.engine_version||null,active_modules:[...active],watch_modules:[...watch],hygiene,principle:'Raw scores are subordinate to cognition. PIOS forms a thesis, exposes uncertainty, compares counterfactuals, simulates future Twin states, tests disconfirming evidence and changes course only when an alternative is materially more robust.'}})}catch(e){return J({error:String(e)},500)}});
+const shield={...(strat.attention_shield||{}),surfaced:validPortfolio.length+(proactive?1:0),suppressed:Math.max(Number(strat.attention_shield?.suppressed||0),Math.max(0,Number(strat.attention_shield?.input_candidates||0)-validPortfolio.length))};return J({...base,strategy:{...strat,next_best_move:next,sequence,portfolio:validPortfolio,horizons,attention_shield:shield},alignment_guard:{version:'decision_engine_v10_counterfactual_simulation',replaced_inactive_top:replaced,proactive_fallback:proactive,owned_pipeline_priority_applied:pipelinePriority,evidence_tiebreak_applied:tieBreak,cognitive_override_applied:cognitiveOverride,reasoning_override_applied:reasoningOverride,simulation_override_applied:simulationOverride,personalization_suppressed:personalizationSuppressed,personalization_status:personalization?.status||'unverified',personalization_version:personalization?.version||null,executive_council_applied:executiveCouncilApplied,executive_council_mode:executiveCouncil?.mode||'unavailable',cognitive_engine:cognition?.engine_version||null,reasoning_engine:reasoning?.reasoning_version||null,simulation_engine:simulation?.engine_version||null,active_modules:[...active],watch_modules:[...watch],hygiene,principle:'Raw scores are subordinate to cognition. PIOS forms a thesis, exposes uncertainty, compares counterfactuals, simulates future Twin states, tests disconfirming evidence and changes course only when an alternative is materially more robust.'}})}catch(e){return J({error:String(e)},500)}});
