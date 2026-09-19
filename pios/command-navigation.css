@@ -1,0 +1,51 @@
+
+/* PIOS product hierarchy: Command / Twin / World / Decide / Act / System.
+   All modules remain mounted. Navigation changes presentation, never the data. */
+.pios-navigation{position:sticky;top:74px;z-index:28;display:flex;align-items:center;gap:5px;overflow-x:auto;scrollbar-width:thin;padding:8px max(16px,calc((100vw - 1780px)/2 + 16px));border-bottom:1px solid #10384d;background:rgba(2,11,21,.96);backdrop-filter:blur(16px)}
+.pios-navigation button{white-space:nowrap;flex:0 0 auto;border:1px solid transparent;border-radius:9px;background:transparent;color:#87acba;font-size:10px;font-weight:760;letter-spacing:.02em;padding:10px 12px;cursor:pointer}
+.pios-navigation button:hover{color:#dffaff;background:rgba(47,231,255,.05);border-color:#174c5f}
+.pios-navigation button.active{color:#d9faff;border-color:#25647a;background:rgba(47,231,255,.10);box-shadow:inset 0 0 16px rgba(47,231,255,.025)}
+.pios-navigation button:focus-visible{outline:2px solid #2fe7ff;outline-offset:2px}
+.workspace-header{width:min(1780px,100%);margin:0 auto;padding:13px 17px 0;display:flex;justify-content:space-between;align-items:center;gap:12px;scroll-margin-top:140px}
+.workspace-header h2{margin:0;font-size:13px;letter-spacing:.04em;color:#c6f8ff}
+.workspace-header p{font-size:9px;line-height:1.5;color:#769eae;margin:4px 0 0}
+.workspace-header .workspace-label{font-size:8px;letter-spacing:.16em;color:#35c9df;font-weight:850}
+.workspace-header .workspace-actions{display:flex;gap:7px;flex-shrink:0}
+.workspace-header .workspace-actions button{border:1px solid #245466;background:#061b2a;border-radius:8px;padding:8px 10px;color:#bee6f2;font-size:9px;cursor:pointer}
+.workspace-header .workspace-actions button:hover{border-color:#2fe7ff}
+body[data-pios-view="command"] .left-rail>.panel:not(.trajectory-panel):not(.twin-trajectory):not(.operating-state){display:none}
+body[data-pios-view="command"] .left-rail>.twin-trajectory,body[data-pios-view="command"] .left-rail>.operating-state{display:none}
+body[data-pios-view="command"] .right-rail>.panel:not(.next-move){display:none}
+body[data-pios-view="command"] .right-rail>.next-move #strategyContext,
+body[data-pios-view="command"] .right-rail>.next-move #actionLearning{display:none}
+body[data-pios-view="twin"] .right-rail{display:none}
+body[data-pios-view="twin"] .command-grid{grid-template-columns:minmax(275px,420px) minmax(440px,1fr)}
+body[data-pios-view="world"] .left-rail,body[data-pios-view="world"] .right-rail{display:none}
+body[data-pios-view="world"] .command-grid{grid-template-columns:minmax(0,1fr)}
+body[data-pios-view="world"] .world-stage{position:relative;top:auto;min-height:680px}
+body[data-pios-view="decide"] .world-stage{display:none}
+body[data-pios-view="decide"] .command-grid{grid-template-columns:minmax(260px,340px) minmax(0,1fr)}
+body[data-pios-view="decide"] .left-rail>.panel:not(.trajectory-panel){display:none}
+body[data-pios-view="decide"] .right-rail>.next-move #actionLearning{display:none}
+body[data-pios-view="act"] .world-stage{display:none}
+body[data-pios-view="act"] .command-grid{grid-template-columns:minmax(270px,480px) minmax(0,1fr)}
+body[data-pios-view="act"] .left-rail>.panel:not(.operating-state):not(.trajectory-panel){display:none}
+body[data-pios-view="act"] .right-rail>.panel:not(.next-move){display:none}
+body[data-pios-view="act"] .next-move>:not(#actionLearning){display:none}
+body[data-pios-view="act"] .next-move:has(#actionLearning){min-height:180px}
+body[data-pios-view="system"] .world-stage{display:none}
+body[data-pios-view="system"] .command-grid{grid-template-columns:minmax(270px,1fr) minmax(270px,1fr)}
+body[data-pios-view="system"] .left-rail>.panel.trajectory-panel,body[data-pios-view="system"] .left-rail>.panel.twin-trajectory,body[data-pios-view="system"] .left-rail>.panel.operating-state,
+body[data-pios-view="system"] .right-rail>.next-move,body[data-pios-view="system"] .right-rail>.panel:has(#sequence),body[data-pios-view="system"] .right-rail>.panel:has(#alternatives){display:none}
+body[data-pios-view="system"] .compact-collapsed{max-height:none}
+body[data-pios-view="system"] .compact-detail>*{display:block}
+@media(max-width:980px){.pios-navigation{top:68px}.workspace-header{padding:12px 14px 0}
+body[data-pios-view="twin"] .command-grid{grid-template-columns:minmax(0,1fr)}
+body[data-pios-view="twin"] .world-stage{grid-column:1;grid-row:1}
+body[data-pios-view="decide"] .command-grid,body[data-pios-view="act"] .command-grid,body[data-pios-view="system"] .command-grid{grid-template-columns:1fr 1fr}
+body[data-pios-view="decide"] .left-rail,body[data-pios-view="act"] .left-rail,body[data-pios-view="system"] .left-rail{grid-column:1}
+body[data-pios-view="decide"] .right-rail,body[data-pios-view="act"] .right-rail,body[data-pios-view="system"] .right-rail{grid-column:2}}
+@media(max-width:680px){.pios-navigation{top:0;position:relative;padding:7px 10px}.workspace-header{align-items:flex-start;flex-direction:column}
+body[data-pios-view="twin"] .world-stage{order:0}
+body[data-pios-view="decide"] .command-grid,body[data-pios-view="act"] .command-grid,body[data-pios-view="system"] .command-grid{display:flex;flex-direction:column}
+body[data-pios-view="decide"] .left-rail,body[data-pios-view="decide"] .right-rail,body[data-pios-view="act"] .left-rail,body[data-pios-view="act"] .right-rail,body[data-pios-view="system"] .left-rail,body[data-pios-view="system"] .right-rail{width:100%}}
