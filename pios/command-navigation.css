@@ -90,3 +90,13 @@ body[data-pios-view="command"] .life-twin-stage .executive-council-strip{pointer
  body[data-pios-view="world"] .world-stage.world-mode>.globe-scene{height:350px;min-height:320px}
  body[data-pios-view="world"] .world-stage.world-mode .globe-wrap{width:330px;height:330px;min-width:300px;min-height:300px}
 }
+
+
+/* The executive brief must be visible on arrival, not hidden below the globe. */
+body[data-pios-view="command"] .world-stage.twin-mode{grid-template-rows:auto auto minmax(440px,1fr);align-content:start}
+body[data-pios-view="command"] .world-stage.twin-mode>.twin-mode-tabs{grid-row:1;grid-column:1}
+body[data-pios-view="command"] .world-stage.twin-mode>.presence-deck{grid-row:2;grid-column:1;margin-top:0}
+body[data-pios-view="command"] .world-stage.twin-mode>.globe-scene,
+body[data-pios-view="command"] .world-stage.twin-mode>.life-twin-stage{grid-row:3;grid-column:1}
+body[data-pios-view="command"] .presence-tile{min-height:100px}
+body[data-pios-view="command"] .presence-header h2{font-size:15px}
