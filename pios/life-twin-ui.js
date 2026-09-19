@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const $=id=>document.getElementById(id);
-  let twinData=null,operatingData=null,reasoningData=null,consequenceData=null,simulationData=null,actionGraphData=null,personalValueData=null,activeScenarioId=null,worldCount=0;
+  let twinData=null,operatingData=null,reasoningData=null,consequenceData=null,simulationData=null,actionGraphData=null,personalValueData=null,activeScenarioId=null,activeSessionToken=null,worldCount=0;
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const money=(v,c='CAD')=>v==null?'—':Number(v).toLocaleString('en-CA',{style:'currency',currency:c,maximumFractionDigits:0});
   const fmtDate=v=>{if(!v)return'—';const d=new Date(v);return Number.isNaN(d.getTime())?'—':d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})};
@@ -212,9 +212,27 @@
   }
 
   async function loadLifeTwin(){
-    ensureShell();if(!localStorage.getItem('pios_token')||typeof window.api!=='function')return;
+    ensureShell();
+    const token=localStorage.getItem('pios_token');
+    if(!token){
+      activeSessionToken=null;twinData=null;operatingData=null;reasoningData=null;consequenceData=null;simulationData=null;actionGraphData=null;personalValueData=null;activeScenarioId=null;
+      if($('lifeTwinStatus'))$('lifeTwinStatus').textContent='CONNECT TO LOAD PERSONAL STATE';
+      if($('twinIntelligenceTitle'))$('twinIntelligenceTitle').textContent='Your Digital Twin is not connected.';
+      if($('twinIntelligenceAction'))$('twinIntelligenceAction').textContent='Sign in to load your own model.';
+      return;
+    }
+    if(token!==activeSessionToken){
+      activeSessionToken=token;twinData=null;operatingData=null;reasoningData=null;consequenceData=null;simulationData=null;actionGraphData=null;personalValueData=null;activeScenarioId=null;
+      document.querySelectorAll('[data-life-node] .scenario-badge').forEach(x=>x.remove());
+      document.querySelectorAll('[data-life-node] b[id$="Value"]').forEach(x=>x.textContent='—');
+      if($('lifeTwinStatus'))$('lifeTwinStatus').textContent='LOADING YOUR PERSONAL MODEL';
+      if($('twinIntelligenceTitle'))$('twinIntelligenceTitle').textContent='Mapping your personal state...';
+      if($('twinIntelligenceAction'))$('twinIntelligenceAction').textContent='Waiting for your account-specific evidence.';
+    }
+    if(typeof window.api!=='function')return;
     const endpoints=['/functions/v1/trajectory-context','/functions/v1/operating-memory','/rest/v1/reasoning_runs?select=reasoning_version,thesis,uncertainties,recommendation,metadata,generated_at&order=generated_at.desc&limit=1','/functions/v1/consequence-engine','/functions/v1/future-simulator','/functions/v1/action-graph','/functions/v1/personal-consequence'];
     const results=await Promise.allSettled(endpoints.map(path=>window.api(path)));
+    if(localStorage.getItem('pios_token')!==token||activeSessionToken!==token)return;
     const value=i=>results[i].status==='fulfilled'?results[i].value:null;
     twinData=value(0)||twinData;operatingData=value(1)||operatingData;
     reasoningData=Array.isArray(value(2))?value(2)[0]||null:reasoningData;
