@@ -12,7 +12,8 @@ for(const id of ["globeWrap","globe","authBtn","refreshBtn","settingsBtn"])asser
 for(const id of ["presenceNeed","presencePrepared","presenceQuiet","presenceChecked"])
  assert.ok(presence.includes('id="'+id+'"'),"home presence section missing: "+id);
 assert.ok(style.includes('body[data-pios-view="command"] .right-rail{display:none}'),"dashboard should not overpower home");
-assert.ok(style.includes('.world-stage{grid-column:2'),"Earth must dominate the command layout");
+assert.ok(style.includes('body[data-pios-view="command"] .left-rail{display:none!important}'),"Command Center must not expose the profile dashboard");
+assert.ok(style.includes('grid-template-columns:minmax(0,1fr)'),"Command Center must give the Earth/presence the full width");
 assert.ok(twin.includes("window.updatePiosPresence"),"twin updates must feed the executive presence");
 assert.ok(orch.includes("callFn('executive-workbench'"),"the intelligence cycle must perform bounded internal preparation");
 assert.ok(workbench.includes('operation!=="prepare_quote"'),"workbench must reject unsupported operations");
@@ -37,3 +38,8 @@ assert.ok(nav.includes(".world-stage.twin-mode>.presence-deck{grid-row:2"),"the 
 const truth=readFileSync("pios/model-truth-ui.js","utf8");
 assert.ok(truth.includes("modelTruthDiagnostics")&&!truth.includes("detail.innerHTML="),"coverage diagnostics must not overwrite selected decisions");
 console.log("PASS ambient executive presence: core Earth/Connect preserved, honest work status, guarded preparation and focused home");
+
+const app=readFileSync("pios/app.js","utf8");
+assert.ok(app.includes("pios_auto_review_done"),"connected sessions should trigger one automatic personal review");
+assert.ok(app.includes("REVIEWING PERSONAL STATE"),"automatic review state should be visible without implying continuous monitoring");
+assert.ok(page.includes(">Recheck now<"),"manual refresh is secondary, not the primary operating model");
