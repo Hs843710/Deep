@@ -41,6 +41,8 @@ jobs:
         run: node pios/tests/executive-council.test.mjs
       - name: Test verified internal work preparation
         run: node pios/tests/executive-workbench.test.mjs
+      - name: Test ambient executive presence
+        run: node pios/tests/presence.test.mjs
       - name: Assemble production shell
         run: |
           python - <<'PY'
