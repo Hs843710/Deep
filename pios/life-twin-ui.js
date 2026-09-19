@@ -184,14 +184,15 @@
   function detailRows(rows){return `<div class="life-detail-grid">${rows.filter(x=>x&&x[1]!=null).map(([k,v])=>`<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('')}</div>`}
   function showCausalPath(){
     const box=$('lifeTwinDetail'),intel=consequenceData?.intelligence||{},steps=intel.causal_path||[];if(!box)return;
-    const flow=intel.direction?.label||String(intel.pathway||'STATE_TO_DECISION').replaceAll('_',' → ');
-    const path=steps.length?`<div class="causal-path">${steps.map((x,i)=>`<div class="causal-step"><span>${i+1}</span><b>${esc(x.label||x.kind||'Step')}</b><small>${esc(x.text||'')}</small></div>${i<steps.length-1?'<i>→</i>':''}`).join('')}</div>`:'<div class="empty-copy">No causal path has been generated yet.</div>';
-    const pv=currentPersonalValue(),mind=(intel.what_would_change_mind||[])[0],plan=actionGraphData?.plan||{},planSteps=plan.candidate_id===personalValueData?.candidate_id?plan.steps||[]:[];
+    const pv=currentPersonalValue(),flow=pv?.pathway?pv.pathway.replaceAll('_',' → '):(intel.direction?.label||'STATE → DECISION');
+    const personalSteps=pv?.surface?steps:[];
+    const path=personalSteps.length?`<div class="causal-path">${personalSteps.map((x,i)=>`<div class="causal-step"><span>${i+1}</span><b>${esc(x.label||x.kind||'Step')}</b><small>${esc(x.text||'')}</small></div>${i<personalSteps.length-1?'<i>→</i>':''}`).join('')}</div>`:'<div class="empty-copy">No causal path has been generated yet.</div>';
+    const mind=(intel.what_would_change_mind||[])[0],plan=actionGraphData?.plan||{},planSteps=pv?.surface&&plan.candidate_id===personalValueData?.candidate_id?plan.steps||[]:[];
     const links=pv?.surface?(pv.why_you||[]).slice(0,3).map(x=>x.fact):[];
     const why=links.length?`<p class="life-intel-reason"><strong>Why this is personal:</strong> ${esc(links.join(' · '))}</p>`:'';
     const unknown=pv?.surface&&pv.not_known?.length?`<p class="life-intel-reason"><strong>What remains unverified:</strong> ${esc(pv.not_known[0])}</p>`:'';
     const actionPath=planSteps.length?`<div class="action-graph-head"><span>ACTION GRAPH</span><small>${esc(plan.objective||'Guarded execution path')}</small></div><div class="action-graph-path">${planSteps.map((x,i)=>`<div class="action-step ${x.approval_required?'approval':'auto'} ${x.status==='blocked'?'blocked':''}"><span>${i+1}</span><b>${esc(x.label||x.id)}</b><small>${x.approval_required?'APPROVAL':'AUTO-ELIGIBLE'}</small></div>${i<planSteps.length-1?'<i>→</i>':''}`).join('')}</div>`:''; 
-    box.innerHTML=`<span>${esc(flow)} · CAUSAL MODEL</span><b>${esc(intel.title||'Current reasoning path')}</b>${path}${why}${unknown}${mind&&pv?.surface?`<p class="life-intel-reason"><strong>What could change this:</strong> ${esc(mind.condition||mind.question||mind)}</p>`:''}${actionPath}`;
+    box.innerHTML=`<span>${esc(flow)} · PERSONAL CONSEQUENCE</span><b>${esc(pv?.surface?intel.title:(pv?.status==='not_personal'?'No personal consequence established':'Awaiting personal evidence'))}</b>${path}${why}${unknown}${mind&&pv?.surface?`<p class="life-intel-reason"><strong>What could change this:</strong> ${esc(mind.condition||mind.question||mind)}</p>`:''}${actionPath}`;
     document.querySelectorAll('[data-life-node]').forEach(n=>n.classList.remove('selected'));
   }
   function showDetail(type){
