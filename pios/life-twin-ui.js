@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const $=id=>document.getElementById(id);
-  let twinData=null,operatingData=null,reasoningData=null,consequenceData=null,worldCount=0;
+  let twinData=null,operatingData=null,reasoningData=null,consequenceData=null,simulationData=null,activeScenarioId=null,worldCount=0;
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const money=(v,c='CAD')=>v==null?'—':Number(v).toLocaleString('en-CA',{style:'currency',currency:c,maximumFractionDigits:0});
   const fmtDate=v=>{if(!v)return'—';const d=new Date(v);return Number.isNaN(d.getTime())?'—':d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})};
@@ -42,6 +42,10 @@
         <span id="twinFlowChip">STATE → DECISION</span>
         <b id="twinIntelligenceTitle">PIOS is mapping your state.</b>
         <small id="twinIntelligenceAction">The Earth is the outside world; the Twin shows what it changes for you.</small>
+      </div>
+      <div id="futureSwitcher" class="future-switcher">
+        <div class="future-switcher-head"><span>NOW → POSSIBLE FUTURES</span><small id="futureNote">comparative simulation · current state remains canonical</small></div>
+        <div id="futureOptions" class="future-options"></div>
       </div>
       <div id="lifeTwinDetail" class="life-twin-detail"><span>SELECT A NODE</span><b>Your current state is shown as a living model, not a news feed.</b><div></div></div>`;
     tabs.insertAdjacentElement('afterend',twin);
@@ -97,6 +101,43 @@
     requestAnimationFrame(drawIntelligenceLinks);
   }
 
+  function scenarioMagnitude(v){
+    const a=Math.abs(Number(v||0));return a>=45?'strong':a>=22?'moderate':a>=8?'light':'minimal';
+  }
+  function scenarioBeneficial(dim,v){
+    const x=Number(v||0);return ['risk','uncertainty'].includes(dim)?x<0:x>0;
+  }
+  function clearScenarioProjection(){
+    document.querySelectorAll('[data-life-node]').forEach(n=>{n.classList.remove('scenario-benefit','scenario-cost','scenario-active');n.querySelectorAll('.scenario-badge').forEach(x=>x.remove())});
+    activeScenarioId=null;renderIntelligence();
+    if($('lifeTwinDetail'))$('lifeTwinDetail').innerHTML='<span>SELECT A NODE</span><b>Your current state is shown as a living model, not a news feed.</b><div></div>';
+    renderFutureSimulations();
+  }
+  function applyScenarioProjection(id){
+    const scenario=(simulationData?.scenarios||[]).find(x=>x.id===id);if(!scenario){clearScenarioProjection();return}
+    activeScenarioId=id;
+    document.querySelectorAll('[data-life-node]').forEach(n=>{n.classList.remove('scenario-benefit','scenario-cost','scenario-active');n.querySelectorAll('.scenario-badge').forEach(x=>x.remove())});
+    const map={goal:'goal',finance:'finance',time:'time',risk:'bottleneck',uncertainty:'bottleneck',optionality:'business',learning:'capabilities'};
+    Object.entries(scenario.state_delta||{}).forEach(([dim,val])=>{
+      const v=Number(val||0);if(Math.abs(v)<8)return;const node=document.querySelector(`[data-life-node="${map[dim]}"]`);if(!node)return;
+      const good=scenarioBeneficial(dim,v);node.classList.add('scenario-active',good?'scenario-benefit':'scenario-cost');
+      const badge=document.createElement('em');badge.className='scenario-badge '+(good?'good':'bad');badge.textContent=`${String(dim).toUpperCase()} ${v>0?'↑':'↓'} ${scenarioMagnitude(v)}`;node.appendChild(badge);
+    });
+    const preferred=simulationData?.preferred_scenario?.id===id;
+    if($('lifeTwinStatus'))$('lifeTwinStatus').textContent=`SIMULATING · ${scenario.label.toUpperCase()} · ROBUST ${Math.round(Number(scenario.robust_utility||0))}`;
+    const assumptions=(scenario.assumptions||[]).slice(0,2),fail=(scenario.failure_modes||[]).slice(0,2);
+    if($('lifeTwinDetail'))$('lifeTwinDetail').innerHTML=`<span>POSSIBLE FUTURE · ${preferred?'PIOS PREFERENCE':'COUNTERFACTUAL'}</span><b>${esc(scenario.label)} · comparative Twin projection</b>${detailRows([['Robust utility',Math.round(Number(scenario.robust_utility||0))],['Regret exposure',Math.round(Number(scenario.regret_exposure||0))],['Evidence confidence',Math.round(Number(scenario.evidence_confidence||0))]])}<p class="life-intel-reason"><strong>Assumes:</strong> ${esc(assumptions.join(' · ')||'No explicit assumptions recorded.')}</p><p class="life-intel-reason"><strong>Can fail if:</strong> ${esc(fail.join(' · ')||'No failure mode recorded.')}</p>`;
+    renderFutureSimulations();
+  }
+  function renderFutureSimulations(){
+    const box=$('futureOptions');if(!box)return;const scenarios=simulationData?.scenarios||[],preferred=simulationData?.preferred_scenario?.id;
+    const current=`<button class="future-option current ${activeScenarioId?'':'active'}" data-scenario="">NOW<small>actual state</small></button>`;
+    const options=scenarios.slice(0,4).map(s=>`<button class="future-option ${s.id===preferred?'preferred':''} ${s.id===activeScenarioId?'active':''}" data-scenario="${esc(s.id)}"><span>${esc(s.label)}</span><b>R${Math.round(Number(s.robust_utility||0))}</b><small>${s.id===preferred?'preferred':'counterfactual'}</small></button>`).join('');
+    box.innerHTML=current+options;
+    box.querySelectorAll('[data-scenario]').forEach(b=>b.onclick=e=>{e.stopPropagation();const id=b.dataset.scenario;if(id)applyScenarioProjection(id);else clearScenarioProjection()});
+    if($('futureNote'))$('futureNote').textContent=scenarios.length?'comparative simulation · not a forecast or commitment':'run intelligence to generate future states';
+  }
+
   function render(){
     ensureShell();const t=twinData?.digital_twin||{},state=t.current_state||{},goal=t.primary_goal||{},p=goal.progress||{},op=operatingData||t.operating_memory||{},s=op.summary||{},gt=op.goal_tracking||{},capital=state.capital||{},counts=t.counts||{},profile=state.profile||{},commitments=state.commitments||{},sources=state.sources||[];
     const projectCurrent=gt.projects?.current??p.current??0,projectTarget=gt.projects?.target??p.target??'—',goalPct=p.progress_pct??gt.projects?.progress_pct??0,rr=reasoningData||{},robust=rr.metadata?.robustness?.score,criticalUnknowns=(rr.uncertainties||[]).filter(x=>x?.critical).length;
@@ -111,7 +152,7 @@
     $('lifeCoreAnchor').textContent=profile.home_region||'PERSONAL MODEL';$('lifeCoreState').textContent=robust!=null?`ROBUST ${Number(robust).toFixed(0)} · ${criticalUnknowns} critical unknown${criticalUnknowns===1?'':'s'}`:`${Number(goalPct||0).toFixed(0)}% goal progress`;
     $('lifeTwinStatus').textContent=t.model_completeness_pct!=null?`CORE MODEL ${t.model_completeness_pct}%`:'LIVE PERSONAL STATE';$('lifeTwinUpdated').textContent=`updated ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
     if($('worldModeCount'))$('worldModeCount').textContent=String(worldCount||0);
-    renderIntelligence();
+    renderIntelligence();renderFutureSimulations();if(activeScenarioId)applyScenarioProjection(activeScenarioId);
   }
 
   function detailRows(rows){return `<div class="life-detail-grid">${rows.filter(x=>x&&x[1]!=null).map(([k,v])=>`<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('')}</div>`}
@@ -141,7 +182,7 @@
 
   async function loadLifeTwin(){
     ensureShell();if(!localStorage.getItem('pios_token')||typeof window.api!=='function')return;
-    try{const [t,o,r,c]=await Promise.all([window.api('/functions/v1/trajectory-context'),window.api('/functions/v1/operating-memory'),window.api('/rest/v1/reasoning_runs?select=reasoning_version,thesis,uncertainties,recommendation,metadata,generated_at&order=generated_at.desc&limit=1'),window.api('/functions/v1/consequence-engine')]);twinData=t;operatingData=o;reasoningData=Array.isArray(r)?r[0]||null:null;consequenceData=c;render();}
+    try{const [t,o,r,c,s]=await Promise.all([window.api('/functions/v1/trajectory-context'),window.api('/functions/v1/operating-memory'),window.api('/rest/v1/reasoning_runs?select=reasoning_version,thesis,uncertainties,recommendation,metadata,generated_at&order=generated_at.desc&limit=1'),window.api('/functions/v1/consequence-engine'),window.api('/functions/v1/future-simulator')]);twinData=t;operatingData=o;reasoningData=Array.isArray(r)?r[0]||null:null;consequenceData=c;simulationData=s;render();}
     catch(_){if($('lifeTwinStatus'))$('lifeTwinStatus').textContent='STATE TEMPORARILY UNAVAILABLE';}
   }
 
