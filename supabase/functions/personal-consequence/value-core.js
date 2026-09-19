@@ -77,7 +77,7 @@ function evaluateAcrossGoals({goals=[],contracts=[],...state}={}){
  const order={potential_next_step:6,investigate:5,context_only:3,needs_personal_evidence:2,no_material_change:1,expired:1,not_personal:0,needs_goal:0,unknown:0};
  results.sort((a,b)=>(order[b.status]??0)-(order[a.status]??0)||a.priority_index-b.priority_index);
  const selected=results[0];
- return {...selected,considered_goals:results.map(x=>({goal_id:x.goal?.id||null,status:x.status,surface:x.surface})),
+ return {...selected,considered_goals:results.map(x=>({goal_id:x.goal_id||x.goal?.id||null,status:x.status,surface:x.surface})),
    version:"personal_consequence_v2_multi_goal"};
 }
 export {evaluatePersonalConsequence,evaluateAcrossGoals};
