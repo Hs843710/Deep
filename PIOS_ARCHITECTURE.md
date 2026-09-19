@@ -49,6 +49,23 @@ When no decision is justified, ask at most one discriminating question or contin
 
 Every release should test the same event against distinct synthetic people and verify that goal, ownership, profit, capital and deadline changes produce appropriately different outputs.
 
+## Executive Intelligence Council
+
+The user has a private executive office, not a generic topic-based news feed. A Chief of Staff commissions only relevant specialist assessments from the **same authenticated user's Digital Twin** and reconciles them into one bounded decision or no interruption.
+
+Specialist assessments are evidence-backed decision lenses, **not** independent professional advisers or proof that autonomous agents have performed work. Every finding distinguishes observed facts, model assumptions, missing evidence, conflicting interests and approval requirements.
+
+- Goal/trajectory evaluates whether the proposed move advances an explicitly recorded desired future.
+- Business, career, property and other domain lenses activate only when relevant to the individual's goals or owned state.
+- Finance, time/capacity and evidence lenses challenge other specialists where recorded guardrails or unknowns require it.
+- The Chief of Staff does not average away a binding constraint. A documented hard guardrail blocks commitment; missing margin or eligibility evidence prompts a bounded verification step.
+- A recorded overdue personal commitment can warrant attention **without** a new external signal. An empty calendar never proves free capacity.
+- Signals without a defensible personal consequence are kept quiet. A source link is not verification of all its claims.
+- Briefs appear as one compact decision on the Earth + Twin. Supporting specialist evidence appears on demand, never as a constant wall of text.
+- No external communication, spending or commitment is performed by an assessment. The guarded Action Graph remains authoritative for execution and human approval.
+
+The initial specialist lenses are deterministic and source-aware. Claims of autonomous specialist research, professional advice or observed real-world execution require separate implemented and verified capabilities.
+
 ## Intellectual stack
 
 ### 1. State model
