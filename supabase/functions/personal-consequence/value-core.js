@@ -72,7 +72,7 @@ function evaluateAcrossGoals({goals=[],contracts=[],...state}={}){
  if(!goals.length)return evaluatePersonalConsequence({...state,goal:null});
  const results=goals.slice(0,20).map((goal,index)=>{
   const contract=contracts.find(x=>x?.goal_id===goal.id)||null;
-  return {priority_index:index,...evaluatePersonalConsequence({...state,goal,contract})};
+  return {goal_id:goal.id,priority_index:index,...evaluatePersonalConsequence({...state,goal,contract})};
  });
  const order={potential_next_step:6,investigate:5,context_only:3,needs_personal_evidence:2,no_material_change:1,expired:1,not_personal:0,needs_goal:0,unknown:0};
  results.sort((a,b)=>(order[b.status]??0)-(order[a.status]??0)||a.priority_index-b.priority_index);
