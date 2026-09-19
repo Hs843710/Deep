@@ -148,7 +148,13 @@ Deno.serve(async(req:Request)=>{
     const c=(await R("opportunity_candidates?user_id=eq."+uid+"&id=eq."+cid+"&select=*&limit=1",jwt))?.[0]||null;
     if(!c)return J({error:"Current candidate not found"},404);
     const cog=cognitionFor(cogs||[],cid);
-    const altCog=(cogs||[]).find((x:any)=>x.candidate_id&&x.candidate_id!==cid)||null;
+    const cogTime=cog?.created_at?new Date(cog.created_at).getTime():null;
+    const altCog=(cogs||[]).find((x:any)=>{
+      if(!x?.candidate_id||x.candidate_id===cid)return false;
+      if(cog?.strategy_snapshot_id&&x.strategy_snapshot_id===cog.strategy_snapshot_id)return true;
+      if(cogTime&&x.created_at){const dt=Math.abs(new Date(x.created_at).getTime()-cogTime);return Number.isFinite(dt)&&dt<=10*60*1000}
+      return false;
+    })||null;
     const alt=altCog?(await R("opportunity_candidates?user_id=eq."+uid+"&id=eq."+altCog.candidate_id+"&select=*&limit=1",jwt))?.[0]||null:null;
     const unknowns=arr(reason?.uncertainties||cog?.unknowns||[]);
     const pathway=String(rec?.strategy_path||((unknowns.some((x:any)=>x?.critical))?"UNKNOWN_TO_LEARN":(c.opportunity_type==="existing_pipeline"?"YOU_TO_WORLD":"WORLD_TO_YOU")));
