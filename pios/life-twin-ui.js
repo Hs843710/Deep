@@ -17,7 +17,7 @@
 
   function ensureShell(){
     const stage=document.querySelector('.world-stage');if(!stage||$('lifeTwinStage'))return;
-    stage.classList.add('twin-mode');
+    if(!stage.classList.contains('world-mode'))stage.classList.add('twin-mode');
     const tabs=document.createElement('div');tabs.className='twin-mode-tabs';tabs.innerHTML=`<button id="twinModeBtn" class="active">TWIN + EARTH</button><button id="worldModeBtn">WORLD <span id="worldModeCount">0</span></button>`;
     stage.prepend(tabs);
     const twin=document.createElement('section');twin.id='lifeTwinStage';twin.className='life-twin-stage';twin.innerHTML=`
