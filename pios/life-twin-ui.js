@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const $=id=>document.getElementById(id);
-  let twinData=null,operatingData=null,reasoningData=null,consequenceData=null,simulationData=null,actionGraphData=null,personalValueData=null,activeScenarioId=null,activeSessionToken=null,worldCount=0;
+  let twinData=null,operatingData=null,reasoningData=null,consequenceData=null,simulationData=null,actionGraphData=null,personalValueData=null,executiveCouncilData=null,activeScenarioId=null,activeSessionToken=null,worldCount=0;
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const money=(v,c='CAD')=>v==null?'—':Number(v).toLocaleString('en-CA',{style:'currency',currency:c,maximumFractionDigits:0});
   const fmtDate=v=>{if(!v)return'—';const d=new Date(v);return Number.isNaN(d.getTime())?'—':d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})};
@@ -43,6 +43,11 @@
         <b id="twinIntelligenceTitle">PIOS is mapping your state.</b>
         <small id="twinIntelligenceAction">The Earth is the outside world; the Twin shows what it changes for you.</small>
       </div>
+      <button id="executiveCouncilStrip" type="button" class="executive-council-strip" aria-label="Open Executive Intelligence Council briefing">
+        <span><i class="executive-council-dot"></i> CHIEF OF STAFF</span>
+        <b id="executiveCouncilHeadline">Checking your priorities...</b>
+        <small id="executiveCouncilMeta">Coordinated specialist assessment · details on demand</small>
+      </button>
       <div id="futureSwitcher" class="future-switcher">
         <div class="future-switcher-head"><span>NOW → POSSIBLE FUTURES</span><small id="futureNote">comparative simulation · current state remains canonical</small></div>
         <div id="futureOptions" class="future-options"></div>
@@ -52,6 +57,7 @@
     $('twinModeBtn').onclick=()=>setMode('twin');$('worldModeBtn').onclick=()=>setMode('world');
     twin.querySelectorAll('[data-life-node]').forEach(n=>n.onclick=()=>showDetail(n.dataset.lifeNode));
     if($('twinIntelligenceSummary'))$('twinIntelligenceSummary').onclick=showCausalPath;
+    if($('executiveCouncilStrip'))$('executiveCouncilStrip').onclick=showCouncilBrief;
     compactPanels();
   }
 
@@ -78,6 +84,35 @@
     if((pv.not_known||[]).length)ids.add('bottleneck');
     if(pv.possible_effect?.capital_required!=null&&pv.possible_effect?.recorded_deployable!=null)ids.add('finance');
     return affected.filter(x=>ids.has(x.id));
+  }
+
+  function currentCouncil(){
+    const c=executiveCouncilData?.council||null;
+    if(!c)return null;
+    const candidate=c.candidate_id||null,personal=personalValueData?.candidate_id||null;
+    if(candidate&&personal&&candidate!==personal)return null;
+    return c;
+  }
+  function renderCouncilStrip(){
+    const c=currentCouncil(),chief=c?.chief_of_staff||{};
+    const strip=$('executiveCouncilStrip');if(!strip)return;
+    strip.classList.remove('council-quiet','council-gated','council-active','council-unavailable');
+    strip.classList.add(!c?'council-unavailable':c.mode==='blocked'?'council-gated':c.mode==='quiet'?'council-quiet':'council-active');
+    if($('executiveCouncilHeadline'))$('executiveCouncilHeadline').textContent=
+      !c?'Executive brief unavailable':c.mode==='quiet'?'Nothing requires your attention from the current evidence':chief.headline||'Your personal briefing';
+    const states=c?.adviser_states||[],active=states.filter(x=>x.status==='active').length,verify=states.filter(x=>x.status==='verify'||x.status==='blocked').length;
+    if($('executiveCouncilMeta'))$('executiveCouncilMeta').textContent=!c?'Other Digital Twin features remain available':
+      c.mode==='quiet'?'Monitoring your recorded goals and commitments':
+      `${active} specialist views active · ${verify} verification gates · tap for reasoning`;
+  }
+  function showCouncilBrief(){
+    const box=$('lifeTwinDetail'),c=currentCouncil(),chief=c?.chief_of_staff||{};if(!box)return;
+    if(!c){box.innerHTML='<span>EXECUTIVE OFFICE</span><b>Briefing unavailable</b><p class="life-intel-reason">The specialist assessment could not be loaded. Your Digital Twin remains available; no new action is implied.</p>';return}
+    const move=chief.next_move?'<p class="life-intel-reason"><strong>Next move:</strong> '+esc(chief.next_move.detail||chief.next_move.title||'')+(chief.next_move.approval_required?' · Approval required before external contact.':'')+'</p>':'';
+    const conflicts=(chief.conflicts||[]).slice(0,2).map(x=>'<p class="life-intel-reason council-conflict"><strong>Specialist disagreement:</strong> '+esc(x.issue||'')+' <strong>Resolution:</strong> '+esc(x.resolution||'')+'</p>').join('');
+    const advisers=(c.specialists||[]).slice(0,7).map(a=>`<div class="council-adviser"><div><b>${esc(a.name||a.id)}</b><span class="council-adviser-status ${esc(a.status)}">${esc(a.status)}</span></div><p>${esc(a.headline||'')}</p>${a.challenge?`<small><strong>Unknown or constraint:</strong> ${esc(a.challenge)}</small>`:''}${(a.facts||[]).slice(0,2).map(x=>`<small class="council-fact">${esc(x.text||'')}</small>`).join('')}${a.next_check&&a.status!=='watch'?`<small class="council-next">${esc(a.next_check)}</small>`:''}</div>`).join('');
+    box.innerHTML=`<span>EXECUTIVE OFFICE · ${esc(String(c.mode||'').toUpperCase())}</span><b>${esc(chief.headline||'Personal briefing')}</b><p class="life-intel-reason">${esc(chief.reason||'')}</p>${move}${conflicts}<div class="council-advisers">${advisers}</div><p class="council-footnote">Specialist findings are evidence-based analyses, not separate licensed advisers. No external action is performed here.</p>`;
+    document.querySelectorAll('[data-life-node]').forEach(n=>n.classList.remove('selected'));
   }
 
   function drawIntelligenceLinks(){
@@ -178,7 +213,7 @@
     $('lifeCoreAnchor').textContent=profile.home_region||'PERSONAL MODEL';$('lifeCoreState').textContent=robust!=null?`ROBUST ${Number(robust).toFixed(0)} · ${criticalUnknowns} critical unknown${criticalUnknowns===1?'':'s'}`:`${Number(goalPct||0).toFixed(0)}% goal progress`;
     $('lifeTwinStatus').textContent=t.model_completeness_pct!=null?`CORE MODEL ${t.model_completeness_pct}%`:'LIVE PERSONAL STATE';$('lifeTwinUpdated').textContent=`updated ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
     if($('worldModeCount'))$('worldModeCount').textContent=String(worldCount||0);
-    renderIntelligence();renderFutureSimulations();if(activeScenarioId)applyScenarioProjection(activeScenarioId);
+    renderIntelligence();renderCouncilStrip();renderFutureSimulations();if(activeScenarioId)applyScenarioProjection(activeScenarioId);
   }
 
   function detailRows(rows){return `<div class="life-detail-grid">${rows.filter(x=>x&&x[1]!=null).map(([k,v])=>`<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('')}</div>`}
@@ -215,14 +250,14 @@
     ensureShell();
     const token=localStorage.getItem('pios_token');
     if(!token){
-      activeSessionToken=null;twinData=null;operatingData=null;reasoningData=null;consequenceData=null;simulationData=null;actionGraphData=null;personalValueData=null;activeScenarioId=null;
+      activeSessionToken=null;twinData=null;operatingData=null;reasoningData=null;consequenceData=null;simulationData=null;actionGraphData=null;personalValueData=null;executiveCouncilData=null;activeScenarioId=null;
       if($('lifeTwinStatus'))$('lifeTwinStatus').textContent='CONNECT TO LOAD PERSONAL STATE';
       if($('twinIntelligenceTitle'))$('twinIntelligenceTitle').textContent='Your Digital Twin is not connected.';
       if($('twinIntelligenceAction'))$('twinIntelligenceAction').textContent='Sign in to load your own model.';
       return;
     }
     if(token!==activeSessionToken){
-      activeSessionToken=token;twinData=null;operatingData=null;reasoningData=null;consequenceData=null;simulationData=null;actionGraphData=null;personalValueData=null;activeScenarioId=null;
+      activeSessionToken=token;twinData=null;operatingData=null;reasoningData=null;consequenceData=null;simulationData=null;actionGraphData=null;personalValueData=null;executiveCouncilData=null;activeScenarioId=null;
       document.querySelectorAll('[data-life-node] .scenario-badge').forEach(x=>x.remove());
       document.querySelectorAll('[data-life-node] b[id$="Value"]').forEach(x=>x.textContent='—');
       if($('lifeTwinStatus'))$('lifeTwinStatus').textContent='LOADING YOUR PERSONAL MODEL';
@@ -230,14 +265,14 @@
       if($('twinIntelligenceAction'))$('twinIntelligenceAction').textContent='Waiting for your account-specific evidence.';
     }
     if(typeof window.api!=='function')return;
-    const endpoints=['/functions/v1/trajectory-context','/functions/v1/operating-memory','/rest/v1/reasoning_runs?select=reasoning_version,thesis,uncertainties,recommendation,metadata,generated_at&order=generated_at.desc&limit=1','/functions/v1/consequence-engine','/functions/v1/future-simulator','/functions/v1/action-graph','/functions/v1/personal-consequence'];
+    const endpoints=['/functions/v1/trajectory-context','/functions/v1/operating-memory','/rest/v1/reasoning_runs?select=reasoning_version,thesis,uncertainties,recommendation,metadata,generated_at&order=generated_at.desc&limit=1','/functions/v1/consequence-engine','/functions/v1/future-simulator','/functions/v1/action-graph','/functions/v1/personal-consequence','/functions/v1/executive-council'];
     const results=await Promise.allSettled(endpoints.map(path=>window.api(path)));
     if(localStorage.getItem('pios_token')!==token||activeSessionToken!==token)return;
     const value=i=>results[i].status==='fulfilled'?results[i].value:null;
     twinData=value(0)||twinData;operatingData=value(1)||operatingData;
     reasoningData=Array.isArray(value(2))?value(2)[0]||null:reasoningData;
     consequenceData=value(3)||consequenceData;simulationData=value(4)||simulationData;
-    actionGraphData=value(5)||actionGraphData;personalValueData=value(6)||personalValueData;
+    actionGraphData=value(5)||actionGraphData;personalValueData=value(6)||personalValueData;executiveCouncilData=value(7)||executiveCouncilData;
     if(twinData||operatingData)render();
     else if($('lifeTwinStatus'))$('lifeTwinStatus').textContent='PERSONAL STATE CURRENTLY UNAVAILABLE';
   }
