@@ -47,6 +47,7 @@
     tabs.insertAdjacentElement('afterend',twin);
     $('twinModeBtn').onclick=()=>setMode('twin');$('worldModeBtn').onclick=()=>setMode('world');
     twin.querySelectorAll('[data-life-node]').forEach(n=>n.onclick=()=>showDetail(n.dataset.lifeNode));
+    if($('twinIntelligenceSummary'))$('twinIntelligenceSummary').onclick=showCausalPath;
     compactPanels();
   }
 
@@ -114,6 +115,14 @@
   }
 
   function detailRows(rows){return `<div class="life-detail-grid">${rows.filter(x=>x&&x[1]!=null).map(([k,v])=>`<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('')}</div>`}
+  function showCausalPath(){
+    const box=$('lifeTwinDetail'),intel=consequenceData?.intelligence||{},steps=intel.causal_path||[];if(!box)return;
+    const flow=intel.direction?.label||String(intel.pathway||'STATE_TO_DECISION').replaceAll('_',' → ');
+    const path=steps.length?`<div class="causal-path">${steps.map((x,i)=>`<div class="causal-step"><span>${i+1}</span><b>${esc(x.label||x.kind||'Step')}</b><small>${esc(x.text||'')}</small></div>${i<steps.length-1?'<i>→</i>':''}`).join('')}</div>`:'<div class="empty-copy">No causal path has been generated yet.</div>';
+    const mind=(intel.what_would_change_mind||[])[0];
+    box.innerHTML=`<span>${esc(flow)} · CAUSAL MODEL</span><b>${esc(intel.title||'Current reasoning path')}</b>${path}${mind?`<p class="life-intel-reason"><strong>What could change this:</strong> ${esc(mind.condition||mind.question||mind)}</p>`:''}`;
+    document.querySelectorAll('[data-life-node]').forEach(n=>n.classList.remove('selected'));
+  }
   function showDetail(type){
     const t=twinData?.digital_twin||{},state=t.current_state||{},goal=t.primary_goal||{},p=goal.progress||{},op=operatingData||t.operating_memory||{},s=op.summary||{},gt=op.goal_tracking||{},capital=state.capital||{},counts=t.counts||{},commitments=state.commitments||{},sources=state.sources||[],b=op.bottleneck||t.bottleneck||{},box=$('lifeTwinDetail');if(!box)return;
     let title='',sub='',rows=[];
