@@ -200,7 +200,7 @@ async function bootConnected(){
   try{await api('/auth/v1/user');$('connectionStatus').textContent='PERSONAL MODEL CONNECTED';$('connectionStatus').classList.add('good');$('authBtn').textContent='Connected';$('authBtn').onclick=openSettings;$('refreshBtn').classList.remove('hidden');$('settingsBtn').classList.remove('hidden');const model=await loadModel();if(!model.profile){openOnboarding();return}await Promise.all([loadExperience(),loadModules()]);}
   catch(e){localStorage.removeItem('pios_token');token='';setVisualMode()}
 }
-function setVisualMode(){$('connectionStatus').textContent='VISUAL MODE';$('connectionStatus').classList.remove('good');$('authBtn').textContent='Connect';$('authBtn').onclick=openAuth;$('refreshBtn').classList.add('hidden');$('settingsBtn').classList.add('hidden');$('globeStatus').textContent='Rotating Earth active · connect to load personalized signals';if(globeController)globeController.setSignals([])}
+function setVisualMode(){$('connectionStatus').textContent='VISUAL MODE';$('connectionStatus').classList.remove('good');$('authBtn').textContent='Connect';$('authBtn').onclick=openAuth;$('refreshBtn').classList.add('hidden');$('settingsBtn').classList.add('hidden');$('globeStatus').textContent='Rotating Earth active · connect to load personalized signals';if(globeController)globeController.setSignals([]);if(typeof window.updatePiosPresence==='function')window.updatePiosPresence({council:null,personalValue:null,asOf:null})}
 
 function initFallbackGlobe(){
   const svg=$('globe');if(!svg)return{setSignals(){}};
