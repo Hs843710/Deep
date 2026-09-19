@@ -32,7 +32,7 @@ body[data-pios-view="act"] .world-stage{display:none}
 body[data-pios-view="act"] .command-grid{grid-template-columns:minmax(270px,480px) minmax(0,1fr)}
 body[data-pios-view="act"] .left-rail>.panel:not(.operating-state):not(.trajectory-panel){display:none}
 body[data-pios-view="act"] .right-rail>.panel:not(.next-move){display:none}
-body[data-pios-view="act"] .next-move>:not(#actionLearning){display:none}
+body[data-pios-view="act"] .next-move>#strategyContext,body[data-pios-view="act"] .next-move>#moveMetrics{display:none}
 body[data-pios-view="act"] .next-move:has(#actionLearning){min-height:180px}
 body[data-pios-view="system"] .world-stage{display:none}
 body[data-pios-view="system"] .command-grid{grid-template-columns:minmax(270px,1fr) minmax(270px,1fr)}
