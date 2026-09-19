@@ -20,5 +20,7 @@ assert.ok(workbench.includes('stage=eq.quoted'),"only owned quoted work may be p
 assert.ok(workbench.includes("external_action_performed:false"),"preparation must never claim external action");
 assert.ok(presence.includes("w?.is_current"),"stale prepared artifacts cannot be marked current");
 assert.ok(presence.includes("external_message_sent"),"draft state must keep external contact distinguishable");
+assert.ok(presence.includes("Prepare quotation follow-up"),"a relevant person can trigger internal preparation directly");
+assert.ok(presence.includes("result?.prepared&&currentWork()"),"the interface cannot claim completed work until it reloads the stored artifact");
 assert.ok(presence.includes("does not establish a continuous watch"),"no unconfigured always-on monitoring claims");
 console.log("PASS ambient executive presence: core Earth/Connect preserved, honest work status, guarded preparation and focused home");
