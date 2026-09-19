@@ -30,6 +30,25 @@ Tagline: **World change → personal consequence → best next move.**
 9. **No fake certainty.** Missing operating history, unknown margin, unverified eligibility, or absent commitments must be shown as unknown rather than filled with guesses.
 10. **Text is secondary.** The default product surface should communicate state, relationships, trajectories, bottlenecks, uncertainty and actions visually. Detailed prose is on demand.
 
+## Personal-intelligence contract
+
+**The same event must be allowed to produce different consequences, actions, questions, or silence for two different people.**
+
+Before a world record becomes a personal recommendation, PIOS must establish:
+- which active desired future or existing obligation it affects;
+- which observed personal fact, owned relationship, capability, geography or resource makes the link credible;
+- which consequence is actual versus only possible;
+- which guardrail or decision-sensitive unknown could invalidate the move;
+- the smallest useful, reversible next step and the evidence that would complete it.
+
+A headline plus topic match is not a personal consequence. A signal relevant only by domain and broad geography remains context, not an executable opportunity. For unrelated signals, the personal Twin remains quiet.
+
+A quotation is **not** won revenue. A won project with unknown or below-threshold margin is **not** proven progress toward a profitable-project target. Missing cash, capacity, eligibility or calendar data is unknown, never silently zero or affirmative.
+
+When no decision is justified, ask at most one discriminating question or continue passive observation. Do not manufacture a generic task solely to keep the UI populated.
+
+Every release should test the same event against distinct synthetic people and verify that goal, ownership, profit, capital and deadline changes produce appropriately different outputs.
+
 ## Intellectual stack
 
 ### 1. State model
