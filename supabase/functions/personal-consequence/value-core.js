@@ -45,9 +45,10 @@ function evaluatePersonalConsequence({profile={},goal=null,contract=null,capabil
  const required=finite(candidate.capital_required_high??candidate.capital_required_low);
  if(required!==null&&deployable!==null&&required>deployable)unknowns.push("Known capital requirement exceeds recorded deployable capital.");
  else if(required===null)unknowns.push("Capital exposure is unknown.");
- const quoted=finite(owned?.quoted_value??candidate?.scope_match?.quoted_value),won=!!owned&&["won","active","completed"].includes(owned.stage);
+ const quoted=finite(owned?.contract_value??owned?.quoted_value??candidate?.scope_match?.quoted_value),won=!!owned&&["won","active","completed"].includes(owned.stage);
  const margin=finite(owned?.estimated_margin_pct??candidate?.scope_match?.estimated_margin_pct),floor=finite(contract?.desired_state?.minimum_gross_margin_pct);
- if(floor!==null&&margin===null)unknowns.push("Margin is unknown; minimum margin cannot be checked.");
+ const qualifyingWin=won&&(floor===null||(margin!==null&&margin>=floor));
+ if(floor!==null&&margin===null)unknowns.push(won?"Project is marked won, but profitability is unverified; it does not yet qualify toward the profitable-project target.":"Margin is unknown; minimum margin cannot be checked.");
  if(floor!==null&&margin!==null&&margin<floor)unknowns.push("Estimated margin is below the recorded minimum.");
  if(!ownedSignal&&!["verified","eligible"].includes(candidate.eligibility_status))unknowns.push("Mandatory eligibility and capacity remain unverified.");
  let move=owned&&!won?{type:"QUALIFY_EXISTING",detail:"Check customer decision status and verify margin before committing further resources.",requires_approval_before_external_contact:true}:
@@ -61,7 +62,7 @@ function evaluatePersonalConsequence({profile={},goal=null,contract=null,capabil
  return {version:"personal_consequence_v1",status,surface:["investigate","potential_next_step"].includes(status),
   pathway:ownedSignal?"YOU_TO_WORLD":status==="context_only"?"UNKNOWN_TO_LEARN":"WORLD_TO_YOU",
   goal:goalState,why_you:links,evidence,actual_state_change:won,
-  possible_effect:{contract_value:quoted,counts_as_won:won,goal_remaining:remaining,unverified_opportunity:!won,
+  possible_effect:{contract_value:quoted,counts_as_won:won,qualifies_for_goal:qualifyingWin,goal_remaining:remaining,unverified_opportunity:!won,
    possible_contract_value_share:valueTarget&&quoted?Number((quoted/valueTarget*100).toFixed(1)):null,
    estimated_margin:margin,minimum_margin:floor,capital_required:required,recorded_deployable:deployable,
    deadline:deadline===null?null:new Date(deadline).toISOString()},
