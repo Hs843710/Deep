@@ -8,8 +8,9 @@
   <title>PIOS — Personal Intelligence OS</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./command-navigation.css" />
 </head>
-<body>
+<body data-pios-view="command">
 <div class="app-shell">
   <header class="topbar">
     <div class="brand">
@@ -25,6 +26,19 @@
     </div>
   </header>
 
+  <nav class="pios-navigation" id="piosNavigation" aria-label="PIOS workspaces">
+    <button type="button" class="active" data-pios-go="command" aria-current="page">Command Center</button>
+    <button type="button" data-pios-go="twin">My Digital Twin</button>
+    <button type="button" data-pios-go="world">World Intelligence</button>
+    <button type="button" data-pios-go="decide">Decisions & Futures</button>
+    <button type="button" data-pios-go="act">Actions & Outcomes</button>
+    <button type="button" data-pios-go="system">Evidence & System</button>
+  </nav>
+  <div class="workspace-header">
+    <div><span class="workspace-label">PERSONAL EXECUTIVE OFFICE</span><h2 id="workspaceTitle">Command Center</h2>
+      <p id="workspaceHint">One living model · one coordinated brief · one useful next move</p></div>
+    <div class="workspace-actions"><button type="button" id="piosModelButton">Edit my model</button></div>
+  </div>
   <main class="command-grid">
     <section class="rail left-rail">
       <div class="rail-heading"><span>YOU</span><small>PERSONAL DIGITAL TWIN</small></div>
@@ -36,7 +50,7 @@
         <div id="strategyDelta" class="delta-note">No strategy history loaded.</div>
       </article>
 
-      <article class="panel">
+      <article class="panel capital-panel">
         <div class="panel-title"><span>Capital Firewall</span><span class="chip shield">PROTECTED</span></div>
         <div class="metric-grid two">
           <div class="metric"><div id="deployableCapital" class="metric-value good">—</div><div class="metric-label">Deployable</div></div>
@@ -218,5 +232,6 @@
 <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
 <script src="./app.js"></script>
+<script src="./command-navigation.js"></script>
 </body>
 </html>
