@@ -24,10 +24,9 @@
         window.api('/functions/v1/operating-memory'),
         window.api('/rest/v1/connected_source_sync_state?select=source_kind,status,last_observed_at,evidence_count&order=last_sync_at.desc')
       ]);
-      const q=score(t,o,sources), status=$('lifeTwinStatus'), core=$('lifeCoreState');
-      if(status){status.textContent=`LIVE EVIDENCE ${q.pct}%`;status.title='Coverage of the Digital Twin backed by current observed state. Setup fields alone do not make this 100%.';}
+      const q=score(t,o,sources);
+      // Coverage is diagnostic telemetry. It belongs in Evidence & System, not the person's live Twin header.
       const gp=t?.digital_twin?.primary_goal?.progress?.progress_pct;
-      if(core) core.textContent=`${Number(gp||0).toFixed(0)}% goal · ${q.pct}% observed`;
       if($('lifeBusinessMeta')) $('lifeBusinessMeta').textContent=q.records?`${q.records} observed operating record${q.records===1?'':'s'}`:'NO LIVE PIPELINE DATA';
       if($('lifeAssetsMeta')) $('lifeAssetsMeta').textContent=q.assets?`${q.assets} modeled resources`:'NOT MODELED';
       // Model-coverage diagnostics belong to Evidence & System, never the live decision surface.
