@@ -3,9 +3,13 @@
  'use strict';
  const $=id=>document.getElementById(id);
  const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- let council=null,personal=null,strategyMove=null,works=[],loadingSeq=0,loadedToken=null,autoPreparedForToken=null;
+ let council=null,personal=null,strategyMove=null,works=[],workError=null,loadingSeq=0,loadedToken=null,autoPreparedForToken=null;
  const label=(x)=>x?'REVIEWED '+new Intl.DateTimeFormat('en-CA',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(x)):'NO VERIFIED REVIEW';
- const currentWork=()=>works.find(w=>w?.status==='prepared'&&w?.is_current&&w?.content?.action_status?.preparation==='completed'&&w?.content?.action_status?.external_contact==='not_performed'&&w?.content?.draft?.external_message_sent===false)||null;
+ const currentWork=()=>works.find(w=>w?.status==='prepared'&&w?.is_current&&
+  (!strategyMove?.candidate_id||w.candidate_id===strategyMove.candidate_id)&&
+  w?.content?.action_status?.preparation==='completed'&&
+  w?.content?.action_status?.external_contact==='not_performed'&&
+  w?.content?.draft?.external_message_sent===false)||null;
  function mount(){
   const stage=document.querySelector('.world-stage');
   if(!stage||$('presenceDeck'))return;
@@ -20,7 +24,12 @@
   drawer.innerHTML='<div class="drawer-head"><div><div class="dialog-eyebrow">INTERNAL WORK · SOURCE LINKED</div><h2>Prepared for you</h2></div><button type="button" class="btn ghost" id="closePreparedDrawer">Close</button></div><div id="preparedDrawerContent" class="prepared-drawer-content"></div>';
   document.body.appendChild(drawer);
   $('closePreparedDrawer').onclick=()=>drawer.classList.add('hidden');
-  $('presenceDetails').onclick=()=>{const btn=$('executiveCouncilStrip');if(btn)btn.click();else if(typeof window.piosNavigate==='function')window.piosNavigate('decide')};
+  $('presenceDetails').onclick=()=>{
+    if(typeof window.piosNavigate==='function')window.piosNavigate('twin');
+    const btn=$('executiveCouncilStrip');
+    if(btn){btn.click();$('lifeTwinDetail')?.scrollIntoView({behavior:'smooth',block:'center'});}
+    else if(typeof window.piosNavigate==='function')window.piosNavigate('decide');
+  };
   $('presenceNeedAction').onclick=()=>{
     if(typeof window.piosNavigate==='function')window.piosNavigate('decide');
     document.querySelector('.next-move')?.scrollIntoView({behavior:'smooth',block:'start'});
@@ -71,13 +80,16 @@
     'No extra decision has been justified by the information checked so far.');
   if($('presenceNeedAction'))$('presenceNeedAction').hidden=!connected||!need;
   if($('presencePrepared'))$('presencePrepared').textContent=work?
-    (work.content?.headline||'An internal package is ready to review.'):'No completed internal work recorded for the current state.';
+    (work.content?.headline||'An internal package is ready to review.'):
+    workError?'Prepared work is temporarily unavailable.':
+    'No completed internal work recorded for the current state.';
   if($('presencePreparedMeta'))$('presencePreparedMeta').textContent=work?
     'Source-linked internal draft and checks created. Nothing was sent; outcome remains unverified.':
-    'Planned or AUTO-eligible steps are not treated as completed work.';
+    workError?'The preparation service could not be verified; nothing has been marked completed.':'Planned or AUTO-eligible steps are not treated as completed work.';
   if($('presencePreparedAction')){
     const relevantBusiness=Array.isArray(council?.specialists)&&council.specialists.some(x=>x.id==='business'&&x.status!=='watch');
-    $('presencePreparedAction').hidden=!connected||(!work&&!relevantBusiness);
+    const selectedQuote=!!strategyMove?.candidate_id&&/follow.up|quotation|quote|estimate/i.test(String(strategyMove.title||'')+' '+String(strategyMove.action||''));
+    $('presencePreparedAction').hidden=!connected||(!work&&!relevantBusiness&&!selectedQuote);
     $('presencePreparedAction').textContent=work?'Inspect prepared work':'Prepare quotation follow-up';
   }
   if($('presenceQuiet'))$('presenceQuiet').textContent=!connected?'Connect to personalize the attention filter.':
@@ -117,30 +129,31 @@
   try{
     const result=await window.api('/functions/v1/executive-workbench');
     if(seq!==loadingSeq||localStorage.getItem('pios_token')!==token)return;
-    loadedToken=token;works=Array.isArray(result?.works)?result.works:[];
-  }catch(_){if(seq!==loadingSeq)return;works=[];}
+    loadedToken=token;workError=null;works=Array.isArray(result?.works)?result.works:[];
+  }catch(_){if(seq!==loadingSeq)return;workError='read_unavailable';works=[];}
   render();
   const relevant=Array.isArray(council?.specialists)&&council.specialists.some(x=>x.id==='business'&&x.status!=='watch');
+  const selectedQuote=!!strategyMove?.candidate_id&&/follow.up|quotation|quote|estimate/i.test(String(strategyMove.title||'')+' '+String(strategyMove.action||''));
   // An owned quote may be prepared internally once per connected session.
   // The operation is idempotent for an unchanged source and never sends anything.
-  if(relevant&&!currentWork()&&autoPreparedForToken!==token){
+  if((relevant||selectedQuote)&&strategyMove?.candidate_id&&!currentWork()&&autoPreparedForToken!==token){
     autoPreparedForToken=token;
     try{
       const prep=await window.api('/functions/v1/executive-workbench',{method:'POST',
-        body:JSON.stringify({operation:'prepare_quote'})});
+        body:JSON.stringify({operation:'prepare_quote',candidate_id:strategyMove.candidate_id})});
       if(prep?.prepared&&localStorage.getItem('pios_token')===token)await loadWork();
     }catch(_){ /* An actual preparation failure must remain visible as not prepared. */ }
   }
  }
  async function prepareQuote(){
   if(typeof window.api!=='function'||!localStorage.getItem('pios_token'))return null;
-  const result=await window.api('/functions/v1/executive-workbench',{method:'POST',body:JSON.stringify({operation:'prepare_quote'})});
+  const result=await window.api('/functions/v1/executive-workbench',{method:'POST',body:JSON.stringify({operation:'prepare_quote',candidate_id:strategyMove?.candidate_id||null})});
   await loadWork();return result;
  }
  function update({council:nextCouncil,personalValue,asOf}={}){
   const token=localStorage.getItem('pios_token');
-  if(!token){council=null;personal=null;strategyMove=null;works=[];loadedToken=null;autoPreparedForToken=null;window.__piosPresenceAsOf=null;if($('preparedDrawer'))$('preparedDrawer').classList.add('hidden');render();return}
-  if(loadedToken&&loadedToken!==token){works=[];loadedToken=null;autoPreparedForToken=null}
+  if(!token){council=null;personal=null;strategyMove=null;works=[];workError=null;loadedToken=null;autoPreparedForToken=null;window.__piosPresenceAsOf=null;if($('preparedDrawer'))$('preparedDrawer').classList.add('hidden');render();return}
+  if(loadedToken&&loadedToken!==token){works=[];workError=null;loadedToken=null;autoPreparedForToken=null}
   council=nextCouncil||null;personal=personalValue||null;
   window.__piosPresenceAsOf=asOf||new Date().toISOString();
   render();loadWork();
@@ -152,6 +165,7 @@
  window.updatePiosStrategy=(move)=>{
    strategyMove=move&&typeof move==='object'?move:null;
    render();
+   if(localStorage.getItem('pios_token')&&strategyMove?.candidate_id)loadWork();
  };
  window.updatePiosPresence=update;
  window.refreshPiosPresence=loadWork;
