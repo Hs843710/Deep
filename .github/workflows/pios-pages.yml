@@ -33,6 +33,8 @@ jobs:
             echo "Checking $file"
             node --check "$file"
           done
+      - name: Test organized product navigation
+        run: node pios/tests/command-navigation.test.mjs
       - name: Test person-specific intelligence
         run: node pios/tests/personal-consequence.test.mjs
       - name: Test Executive Intelligence Council
