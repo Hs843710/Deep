@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const $=id=>document.getElementById(id);
-  let twinData=null,operatingData=null,reasoningData=null,consequenceData=null,simulationData=null,actionGraphData=null,personalValueData=null,executiveCouncilData=null,activeScenarioId=null,activeSessionToken=null,worldCount=0;
+  let twinData=null,operatingData=null,reasoningData=null,consequenceData=null,simulationData=null,actionGraphData=null,personalValueData=null,executiveCouncilData=null,activeScenarioId=null,activeSessionToken=null,worldCount=0,loadSeq=0;
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const money=(v,c='CAD')=>v==null?'—':Number(v).toLocaleString('en-CA',{style:'currency',currency:c,maximumFractionDigits:0});
   const fmtDate=v=>{if(!v)return'—';const d=new Date(v);return Number.isNaN(d.getTime())?'—':d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})};
@@ -248,35 +248,70 @@
 
   async function loadLifeTwin(){
     ensureShell();
-    const token=localStorage.getItem('pios_token');
+    const token=localStorage.getItem('pios_token'),seq=++loadSeq;
     if(!token){
-      activeSessionToken=null;twinData=null;operatingData=null;reasoningData=null;consequenceData=null;simulationData=null;actionGraphData=null;personalValueData=null;executiveCouncilData=null;activeScenarioId=null;
+      activeSessionToken=null;twinData=null;operatingData=null;reasoningData=null;consequenceData=null;
+      simulationData=null;actionGraphData=null;personalValueData=null;executiveCouncilData=null;activeScenarioId=null;
       if($('lifeTwinStatus'))$('lifeTwinStatus').textContent='CONNECT TO LOAD PERSONAL STATE';
-      if($('twinIntelligenceTitle'))$('twinIntelligenceTitle').textContent='Your Digital Twin is not connected.';
-      if($('twinIntelligenceAction'))$('twinIntelligenceAction').textContent='Sign in to load your own model.';
+      if($('executiveCouncilHeadline'))$('executiveCouncilHeadline').textContent='Connect to load your personal executive brief';
       if(typeof window.updatePiosPresence==='function')window.updatePiosPresence({council:null,personalValue:null,asOf:null});
       return;
     }
     if(token!==activeSessionToken){
-      activeSessionToken=token;twinData=null;operatingData=null;reasoningData=null;consequenceData=null;simulationData=null;actionGraphData=null;personalValueData=null;executiveCouncilData=null;activeScenarioId=null;
+      activeSessionToken=token;twinData=null;operatingData=null;reasoningData=null;consequenceData=null;
+      simulationData=null;actionGraphData=null;personalValueData=null;executiveCouncilData=null;activeScenarioId=null;
       document.querySelectorAll('[data-life-node] .scenario-badge').forEach(x=>x.remove());
       document.querySelectorAll('[data-life-node] b[id$="Value"]').forEach(x=>x.textContent='—');
-      if($('lifeTwinStatus'))$('lifeTwinStatus').textContent='LOADING YOUR PERSONAL MODEL';
-      if($('twinIntelligenceTitle'))$('twinIntelligenceTitle').textContent='Mapping your personal state...';
-      if($('twinIntelligenceAction'))$('twinIntelligenceAction').textContent='Waiting for your account-specific evidence.';
+      if($('lifeTwinStatus'))$('lifeTwinStatus').textContent='LOADING PERSONAL EVIDENCE';
+      if($('executiveCouncilHeadline'))$('executiveCouncilHeadline').textContent='Reviewing your actual priorities…';
     }
-    if(typeof window.api!=='function')return;
-    const endpoints=['/functions/v1/trajectory-context','/functions/v1/operating-memory','/rest/v1/reasoning_runs?select=reasoning_version,thesis,uncertainties,recommendation,metadata,generated_at&order=generated_at.desc&limit=1','/functions/v1/consequence-engine','/functions/v1/future-simulator','/functions/v1/action-graph','/functions/v1/personal-consequence','/functions/v1/executive-council'];
-    const results=await Promise.allSettled(endpoints.map(path=>window.api(path)));
-    if(localStorage.getItem('pios_token')!==token||activeSessionToken!==token)return;
-    const value=i=>results[i].status==='fulfilled'?results[i].value:null;
-    twinData=value(0)||twinData;operatingData=value(1)||operatingData;
-    reasoningData=Array.isArray(value(2))?value(2)[0]||null:reasoningData;
-    consequenceData=value(3)||consequenceData;simulationData=value(4)||simulationData;
-    actionGraphData=value(5)||actionGraphData;personalValueData=value(6)||personalValueData;executiveCouncilData=value(7)||executiveCouncilData;
-    if(twinData||operatingData)render();
-    else if($('lifeTwinStatus'))$('lifeTwinStatus').textContent='PERSONAL STATE CURRENTLY UNAVAILABLE';
-    if(typeof window.updatePiosPresence==='function')window.updatePiosPresence({council:executiveCouncilData?.council||null,personalValue:personalValueData?.personal_value||null,asOf:executiveCouncilData?.generated_at||null});
+    if(typeof window.api!=='function'){
+      if($('executiveCouncilHeadline'))$('executiveCouncilHeadline').textContent='Personal connection unavailable; retry the page';
+      return;
+    }
+    const valid=()=>seq===loadSeq&&activeSessionToken===token&&localStorage.getItem('pios_token')===token;
+    const request=async path=>{
+      // A slow optional model must never hold the personal executive brief hostage.
+      return await Promise.race([
+        window.api(path),
+        new Promise((_,reject)=>setTimeout(()=>reject(new Error('Endpoint timed out')),14000))
+      ]);
+    };
+    // The four essential sources are prioritized. Optional simulation and history load afterwards.
+    const critical=[
+      '/functions/v1/trajectory-context',
+      '/functions/v1/operating-memory',
+      '/functions/v1/personal-consequence',
+      '/functions/v1/executive-council'
+    ];
+    const main=await Promise.allSettled(critical.map(request));
+    if(!valid())return;
+    const get=(rows,i)=>rows[i]?.status==='fulfilled'&&rows[i].value?.ok!==false?rows[i].value:null;
+    twinData=get(main,0)||null;operatingData=get(main,1)||null;
+    personalValueData=get(main,2)||null;executiveCouncilData=get(main,3)||null;
+    if(twinData||operatingData){
+      try{render()}catch(e){
+        if($('lifeTwinStatus'))$('lifeTwinStatus').textContent='PERSONAL VIEW PARTIALLY UNAVAILABLE';
+      }
+    }else if($('lifeTwinStatus'))$('lifeTwinStatus').textContent='PERSONAL STATE UNAVAILABLE · RETRY';
+    if($('executiveCouncilHeadline')&&!executiveCouncilData?.council)
+      $('executiveCouncilHeadline').textContent='Specialist brief unavailable; recorded strategy remains accessible';
+    if(typeof window.updatePiosPresence==='function')window.updatePiosPresence({
+      council:executiveCouncilData?.council||null,
+      personalValue:personalValueData?.personal_value||null,
+      asOf:executiveCouncilData?.generated_at||null
+    });
+    const supplemental=[
+      '/rest/v1/reasoning_runs?select=reasoning_version,thesis,uncertainties,recommendation,metadata,generated_at&order=generated_at.desc&limit=1',
+      '/functions/v1/consequence-engine',
+      '/functions/v1/future-simulator',
+      '/functions/v1/action-graph'
+    ];
+    const extras=await Promise.allSettled(supplemental.map(request));
+    if(!valid())return;
+    reasoningData=Array.isArray(get(extras,0))?get(extras,0)[0]||null:null;
+    consequenceData=get(extras,1)||null;simulationData=get(extras,2)||null;actionGraphData=get(extras,3)||null;
+    if(twinData||operatingData)try{render()}catch(_){/* Main personal briefing stays available. */}
   }
 
   function installHooks(){
