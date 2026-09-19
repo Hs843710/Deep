@@ -26,3 +26,11 @@
 .life-intel-reason strong{color:#bff7ff}
 .world-stage.twin-mode .globe-scene:after{content:'WORLD';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:6;pointer-events:none;color:rgba(225,253,255,.82);font:900 8px/1 Inter,ui-sans-serif,system-ui;letter-spacing:.2em;text-shadow:0 0 13px rgba(47,231,255,.85)}
 @media(max-width:900px){.twin-intelligence-summary{grid-template-columns:1fr;grid-template-areas:"chip" "title" "action";gap:4px}.twin-intelligence-summary>span{justify-content:center;padding:6px}.twin-intelligence-summary>b,.twin-intelligence-summary>small{white-space:normal}}
+
+
+.causal-path{display:flex;align-items:stretch;gap:5px;margin-top:9px;overflow-x:auto;padding-bottom:2px}
+.causal-path>i{align-self:center;color:#2fe7ff;font-style:normal;font-size:10px;opacity:.7}
+.causal-step{min-width:115px;flex:1;padding:7px 8px;border:1px solid rgba(47,231,255,.09);border-radius:8px;background:rgba(47,231,255,.025)}
+.causal-step>span{display:inline-flex;width:16px;height:16px;align-items:center;justify-content:center;border:1px solid rgba(25,255,211,.32);border-radius:50%;font-size:7px;color:#19ffd3;margin-right:5px}
+.causal-step>b{font-size:8px;color:#d7f8ff}
+.causal-step>small{display:block;margin-top:5px;font-size:7px;line-height:1.4;color:#779eac}
