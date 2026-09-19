@@ -79,7 +79,20 @@ Three proactive pathways remain:
 
 DO_NOTHING is valid only when all three fail to produce a worthwhile move.
 
-### 6. Action & outcome loop
+### 6. Counterfactual simulation
+Simulation exists only to improve a real decision. It never replaces the canonical Digital Twin with an imagined state.
+
+For a material choice, PIOS may compare:
+- ACT NOW
+- LEARN FIRST
+- PURSUE ALTERNATIVE
+- HOLD / PRESERVE STATE
+
+Each scenario should project bounded comparative effects on goal progress, finance/capital, time/capacity, risk, uncertainty, optionality and learning. Exact monetary or timing forecasts are only allowed when the evidence supports them.
+
+A simulation may override the current recommendation only when the alternative is materially more robust, not because of a marginal score difference. Simulated state is always visually distinguishable from observed state and is never written back as reality.
+
+### 7. Action & outcome loop
 A recommendation becomes:
 decision → bounded action → lifecycle → real outcome → calibration review → policy update.
 
