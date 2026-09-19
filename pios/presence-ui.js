@@ -31,7 +31,7 @@
  function render(){
   mountIfMissing();
   const connected=!!localStorage.getItem('pios_token');
-  const chief=council?.chief_of_staff||{},work=currentWork();
+  const chief=connected?(council?.chief_of_staff||{}):{},work=connected?currentWork():null;
   const reviewedAt=window.__piosPresenceAsOf||null;
   if($('presenceChecked'))$('presenceChecked').textContent=connected?(label(reviewedAt)):'NOT CONNECTED';
   const need=chief.next_move;
@@ -101,7 +101,7 @@
  }
  function update({council:nextCouncil,personalValue,asOf}={}){
   const token=localStorage.getItem('pios_token');
-  if(!token){council=null;personal=null;works=[];loadedToken=null;render();return}
+  if(!token){council=null;personal=null;works=[];loadedToken=null;window.__piosPresenceAsOf=null;if($('preparedDrawer'))$('preparedDrawer').classList.add('hidden');render();return}
   if(loadedToken&&loadedToken!==token){works=[];loadedToken=null}
   council=nextCouncil||null;personal=personalValue||null;
   window.__piosPresenceAsOf=asOf||new Date().toISOString();
