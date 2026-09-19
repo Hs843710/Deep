@@ -119,6 +119,7 @@ function renderExperience(d){
   if(globeController)globeController.setSignals(worldSignals);
   if(worldSignals.length)showSignal(mapped[0]||worldSignals[0]);
 
+  if(typeof window.updatePiosStrategy==='function')window.updatePiosStrategy(move);
   const activity=d.activity?.runs||[];
   if(activity.length){const items=activity.slice(0,6).map(x=>`<span><b>${esc(humanText(x.engine||x.trigger||'Intelligence run'))}</b> · ${num(x.signals_seen).toLocaleString()} signals · ${num(x.candidates_created)} candidates · ${esc(x.status||'')}</span>`);$('tickerTrack').innerHTML=items.concat(items).join('')}
 }
