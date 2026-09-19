@@ -3,7 +3,7 @@
  'use strict';
  const $=id=>document.getElementById(id);
  const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- let council=null,personal=null,works=[],loadingSeq=0,loadedToken=null,autoPreparedForToken=null;
+ let council=null,personal=null,strategyMove=null,works=[],loadingSeq=0,loadedToken=null,autoPreparedForToken=null;
  const label=(x)=>x?'REVIEWED '+new Intl.DateTimeFormat('en-CA',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(x)):'NO VERIFIED REVIEW';
  const currentWork=()=>works.find(w=>w?.status==='prepared'&&w?.is_current&&w?.content?.action_status?.preparation==='completed'&&w?.content?.action_status?.external_contact==='not_performed'&&w?.content?.draft?.external_message_sent===false)||null;
  function mount(){
@@ -46,14 +46,25 @@
   const chief=connected?(council?.chief_of_staff||{}):{},work=connected?currentWork():null;
   const reviewedAt=window.__piosPresenceAsOf||null;
   if($('presenceChecked'))$('presenceChecked').textContent=connected?(label(reviewedAt)):'NOT CONNECTED';
-  const need=chief.next_move;
-  const priority=connected?(need?.title||'No decision needs your attention from the current evidence.'):'Connect to load your personal model';
+  const strategyActive=connected&&strategyMove?.candidate_id&&
+    !['DO_NOTHING','DO NOTHING','NONE'].includes(String(strategyMove.decision||'').toUpperCase());
+  const councilNeed=chief.next_move||null;
+  const need=councilNeed||(strategyActive?{title:strategyMove.title||'A recorded decision needs review',
+    detail:strategyMove.action||strategyMove.why||'Review the recorded next step.'}:null);
+  const priority=!connected?'Connect to load your personal model':need?.title||
+    (council?.mode==='quiet'?'No material issue identified in the latest reviewed evidence.':
+    council?'No decision warrants attention in the reviewed evidence.':
+    strategyMove?'Specialist review unavailable; inspect the latest recorded strategy.':
+    'Personal briefing unavailable. Refresh intelligence to retry.');
   if($('presenceStatement'))$('presenceStatement').textContent=connected?
-    (council?.mode==='blocked'?'One important constraint needs resolving.':council?.mode==='quiet'?'Nothing material needs your attention from this review.':
-      need?'I have narrowed the current decision to one useful next move.':'Your current personal briefing is being assembled.'):
+    (council?.mode==='blocked'?'A recorded constraint needs your attention.':
+    need?'I have identified the next decision to review.':
+    council?.mode==='quiet'?'No material action identified in this review.':
+    'Personal intelligence is not fully available.'):
     'Your life, not another feed.';
   if($('presenceContext'))$('presenceContext').textContent=connected?
-    (chief.reason||'PIOS compares your recorded situation with your goals, constraints and observed changes.'):
+    (chief.reason||(strategyActive?'A recorded strategy exists. Specialist verification may still be pending.':
+    'The personal briefing has not been fully verified; no external action is assumed.')):
     'Connect your Digital Twin to let PIOS work from your actual goals, resources and responsibilities.';
   if($('presenceNeed'))$('presenceNeed').textContent=priority;
   if($('presenceNeedMeta'))$('presenceNeedMeta').textContent=need?.detail||(!connected?'Your private state stays account-specific.':
@@ -128,7 +139,7 @@
  }
  function update({council:nextCouncil,personalValue,asOf}={}){
   const token=localStorage.getItem('pios_token');
-  if(!token){council=null;personal=null;works=[];loadedToken=null;autoPreparedForToken=null;window.__piosPresenceAsOf=null;if($('preparedDrawer'))$('preparedDrawer').classList.add('hidden');render();return}
+  if(!token){council=null;personal=null;strategyMove=null;works=[];loadedToken=null;autoPreparedForToken=null;window.__piosPresenceAsOf=null;if($('preparedDrawer'))$('preparedDrawer').classList.add('hidden');render();return}
   if(loadedToken&&loadedToken!==token){works=[];loadedToken=null;autoPreparedForToken=null}
   council=nextCouncil||null;personal=personalValue||null;
   window.__piosPresenceAsOf=asOf||new Date().toISOString();
@@ -138,6 +149,10 @@
   mount();
   if(localStorage.getItem('pios_token'))loadWork();
  }
+ window.updatePiosStrategy=(move)=>{
+   strategyMove=move&&typeof move==='object'?move:null;
+   render();
+ };
  window.updatePiosPresence=update;
  window.refreshPiosPresence=loadWork;
  window.preparePiosQuoteInternally=prepareQuote;
