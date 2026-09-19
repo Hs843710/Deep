@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const $=id=>document.getElementById(id);
-  let twinData=null,operatingData=null,worldCount=0;
+  let twinData=null,operatingData=null,reasoningData=null,worldCount=0;
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const money=(v,c='CAD')=>v==null?'—':Number(v).toLocaleString('en-CA',{style:'currency',currency:c,maximumFractionDigits:0});
   const fmtDate=v=>{if(!v)return'—';const d=new Date(v);return Number.isNaN(d.getTime())?'—':d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})};
@@ -53,7 +53,7 @@
 
   function render(){
     ensureShell();const t=twinData?.digital_twin||{},state=t.current_state||{},goal=t.primary_goal||{},p=goal.progress||{},op=operatingData||t.operating_memory||{},s=op.summary||{},gt=op.goal_tracking||{},capital=state.capital||{},counts=t.counts||{},profile=state.profile||{},commitments=state.commitments||{},sources=state.sources||[];
-    const projectCurrent=gt.projects?.current??p.current??0,projectTarget=gt.projects?.target??p.target??'—',goalPct=p.progress_pct??gt.projects?.progress_pct??0;
+    const projectCurrent=gt.projects?.current??p.current??0,projectTarget=gt.projects?.target??p.target??'—',goalPct=p.progress_pct??gt.projects?.progress_pct??0,rr=reasoningData||{},robust=rr.metadata?.robustness?.score,criticalUnknowns=(rr.uncertainties||[]).filter(x=>x?.critical).length;
     setNode('lifeGoal',`${projectCurrent}/${projectTarget}`,`${Number(goalPct||0).toFixed(0)}% complete`,Number(goalPct||0)>0?'good':'known');
     setNode('lifeBusiness',`${s.open||0} open`,`${s.quoted||0} quoted · ${s.won||0} won`,(operatingData?.records||[]).length?'known':'unknown');
     setNode('lifeProjects',`${s.won||0} won`,`${s.open||0} active pipeline`,s.won>0?'good':s.open>0?'known':'unknown');
@@ -62,7 +62,7 @@
     setNode('lifeCapabilities',String(counts.capabilities??0),'recorded capabilities',(counts.capabilities||0)>0?'good':'unknown');
     setNode('lifeAssets',String(counts.resources??0),`${counts.connected_sources??sources.length} connected source${(counts.connected_sources??sources.length)===1?'':'s'}`,(counts.resources||0)>0?'known':'unknown');
     const b=op.bottleneck||t.bottleneck||{};setNode('lifeBottleneck',b.type==='none'||!b.type?'UNKNOWN':String(b.title||b.type).replace(/Bottleneck not identified yet/i,'UNVERIFIED').slice(0,20),b.type==='none'?'needs operating evidence':String(b.type||'constraint').replaceAll('_',' '),b.type==='none'||!b.type?'unknown':'warn');
-    $('lifeCoreAnchor').textContent=profile.home_region||'PERSONAL MODEL';$('lifeCoreState').textContent=`${Number(goalPct||0).toFixed(0)}% goal progress`;
+    $('lifeCoreAnchor').textContent=profile.home_region||'PERSONAL MODEL';$('lifeCoreState').textContent=robust!=null?`ROBUST ${Number(robust).toFixed(0)} · ${criticalUnknowns} critical unknown${criticalUnknowns===1?'':'s'}`:`${Number(goalPct||0).toFixed(0)}% goal progress`;
     $('lifeTwinStatus').textContent=t.model_completeness_pct!=null?`CORE MODEL ${t.model_completeness_pct}%`:'LIVE PERSONAL STATE';$('lifeTwinUpdated').textContent=`updated ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
     if($('worldModeCount'))$('worldModeCount').textContent=String(worldCount||0);
   }
@@ -85,7 +85,7 @@
 
   async function loadLifeTwin(){
     ensureShell();if(!localStorage.getItem('pios_token')||typeof window.api!=='function')return;
-    try{const [t,o]=await Promise.all([window.api('/functions/v1/trajectory-context'),window.api('/functions/v1/operating-memory')]);twinData=t;operatingData=o;render();}
+    try{const [t,o,r]=await Promise.all([window.api('/functions/v1/trajectory-context'),window.api('/functions/v1/operating-memory'),window.api('/rest/v1/reasoning_runs?select=reasoning_version,thesis,uncertainties,recommendation,metadata,generated_at&order=generated_at.desc&limit=1')]);twinData=t;operatingData=o;reasoningData=Array.isArray(r)?r[0]||null:null;render();}
     catch(_){if($('lifeTwinStatus'))$('lifeTwinStatus').textContent='STATE TEMPORARILY UNAVAILABLE';}
   }
 
