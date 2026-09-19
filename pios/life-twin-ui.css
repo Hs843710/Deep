@@ -34,3 +34,26 @@
 .causal-step>span{display:inline-flex;width:16px;height:16px;align-items:center;justify-content:center;border:1px solid rgba(25,255,211,.32);border-radius:50%;font-size:7px;color:#19ffd3;margin-right:5px}
 .causal-step>b{font-size:8px;color:#d7f8ff}
 .causal-step>small{display:block;margin-top:5px;font-size:7px;line-height:1.4;color:#779eac}
+
+
+.future-switcher{position:relative;z-index:7;margin:0 0 8px;padding:7px 8px;border:1px solid rgba(47,231,255,.09);border-radius:12px;background:rgba(3,16,27,.72);pointer-events:auto}
+.future-switcher-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
+.future-switcher-head>span{font-size:7px;font-weight:900;letter-spacing:.14em;color:#8eeaf7}
+.future-switcher-head>small{font-size:6px;color:#668d9b;text-transform:uppercase;letter-spacing:.08em}
+.future-options{display:flex;gap:5px;overflow-x:auto;padding-bottom:1px}
+.future-option{min-width:88px;border:1px solid rgba(47,231,255,.1);background:rgba(7,24,36,.72);border-radius:9px;padding:6px 7px;color:#8fb4c1;cursor:pointer;text-align:left;transition:.18s ease;position:relative}
+.future-option:hover{border-color:rgba(47,231,255,.35);transform:translateY(-1px)}
+.future-option>span,.future-option.current{font-size:7px;font-weight:900;letter-spacing:.05em}
+.future-option>b{display:block;margin-top:2px;font-size:10px;color:#d8faff}
+.future-option>small{display:block;margin-top:2px;font-size:6px;text-transform:uppercase;letter-spacing:.08em;color:#658b98}
+.future-option.preferred{border-color:rgba(25,255,211,.32);box-shadow:inset 0 0 12px rgba(25,255,211,.03)}
+.future-option.preferred:after{content:'PIOS';position:absolute;right:5px;top:4px;font-size:5px;color:#19ffd3;letter-spacing:.1em}
+.future-option.active{border-color:#2fe7ff;box-shadow:0 0 12px rgba(47,231,255,.16),inset 0 0 11px rgba(47,231,255,.04);color:#dffcff}
+.life-node{overflow:visible}
+.life-node.scenario-active{z-index:8}
+.life-node.scenario-benefit{box-shadow:0 0 22px rgba(25,255,211,.16),inset 0 0 13px rgba(25,255,211,.04)}
+.life-node.scenario-cost{box-shadow:0 0 22px rgba(255,170,97,.14),inset 0 0 13px rgba(255,170,97,.035)}
+.scenario-badge{position:absolute;left:50%;bottom:-17px;transform:translateX(-50%);white-space:nowrap;padding:3px 5px;border-radius:999px;font-size:5px;font-style:normal;font-weight:900;letter-spacing:.06em;background:#06141e;border:1px solid rgba(47,231,255,.12);z-index:9}
+.scenario-badge.good{color:#19ffd3;border-color:rgba(25,255,211,.28)}
+.scenario-badge.bad{color:#ffb36f;border-color:rgba(255,179,111,.28)}
+@media(max-width:900px){.future-switcher-head{align-items:flex-start;flex-direction:column;gap:2px}.future-option{min-width:78px}.scenario-badge{bottom:-15px}}
