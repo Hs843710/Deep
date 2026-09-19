@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const $=id=>document.getElementById(id);
-  let twinData=null,operatingData=null,reasoningData=null,consequenceData=null,simulationData=null,actionGraphData=null,activeScenarioId=null,worldCount=0;
+  let twinData=null,operatingData=null,reasoningData=null,consequenceData=null,simulationData=null,actionGraphData=null,personalValueData=null,activeScenarioId=null,worldCount=0;
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const money=(v,c='CAD')=>v==null?'—':Number(v).toLocaleString('en-CA',{style:'currency',currency:c,maximumFractionDigits:0});
   const fmtDate=v=>{if(!v)return'—';const d=new Date(v);return Number.isNaN(d.getTime())?'—':d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})};
@@ -65,9 +65,24 @@
     const v=$(id+'Value'),m=$(id+'Meta'),node=v?.closest('.life-node');if(v)v.textContent=value;if(m)m.textContent=meta;if(node){node.classList.remove('node-good','node-warn','node-unknown');node.classList.add(state==='good'?'node-good':state==='warn'?'node-warn':state==='unknown'?'node-unknown':'');}
   }
 
+  function currentPersonalValue(){
+    const intel=consequenceData?.intelligence||{},data=personalValueData||{};
+    if(!data?.personal_value)return null;
+    if(data.candidate_id&&intel.candidate_id&&data.candidate_id!==intel.candidate_id)return null;
+    return data.personal_value;
+  }
+  function personalAffected(affected){
+    const pv=currentPersonalValue();if(!pv)return [];
+    if(!pv.surface)return [];
+    const ids=new Set((pv.why_you||[]).map(x=>x.node));
+    if((pv.not_known||[]).length)ids.add('bottleneck');
+    if(pv.possible_effect?.capital_required!=null&&pv.possible_effect?.recorded_deployable!=null)ids.add('finance');
+    return affected.filter(x=>ids.has(x.id));
+  }
+
   function drawIntelligenceLinks(){
     const map=document.querySelector('.life-map'),svg=$('twinIntelligenceLayer'),group=$('twinIntelligenceLinks');if(!map||!svg||!group)return;
-    const intel=consequenceData?.intelligence||{},visual=consequenceData?.visual_directive||{},affected=intel.affected_nodes||[];
+    const intel=consequenceData?.intelligence||{},visual=consequenceData?.visual_directive||{},affected=personalAffected(intel.affected_nodes||[]);
     const box=map.getBoundingClientRect(),w=Math.max(1,box.width),h=Math.max(1,box.height),cx=w/2,cy=h/2;
     svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
     group.innerHTML='';
@@ -85,23 +100,30 @@
   }
 
   function renderIntelligence(){
-    const intel=consequenceData?.intelligence||{},visual=consequenceData?.visual_directive||{},affected=intel.affected_nodes||[];
+    const intel=consequenceData?.intelligence||{},visual=consequenceData?.visual_directive||{},affected=personalAffected(intel.affected_nodes||[]),pv=currentPersonalValue();
     document.querySelectorAll('[data-life-node]').forEach(n=>n.classList.remove('node-intel','node-primary','node-uncertain'));
     affected.forEach((x,i)=>{
       const n=document.querySelector(`[data-life-node="${x.id}"]`);if(!n)return;
       n.classList.add('node-intel');if(i===0)n.classList.add('node-primary');if(x.state==='uncertain')n.classList.add('node-uncertain');
       n.style.setProperty('--intel-strength',String(Math.max(.35,Math.min(1,Number(x.weight||50)/100))));
     });
-    const flow=intel.direction?.label||String(intel.pathway||'STATE_TO_DECISION').replaceAll('_',' → ');
+    const flow=pv?.pathway?pv.pathway.replaceAll('_',' → '):(intel.direction?.label||'STATE → DECISION');
     if($('twinFlowChip'))$('twinFlowChip').textContent=flow;
-    if($('twinIntelligenceTitle'))$('twinIntelligenceTitle').textContent=intel.title||'PIOS is mapping the current decision.';
+    const isPersonal=!!pv?.surface,hasPerson=!!pv;
+    if($('twinIntelligenceTitle'))$('twinIntelligenceTitle').textContent=
+      isPersonal?(intel.title||'A change affects your current goal.'):
+      hasPerson?(pv.status==='not_personal'?'No personal consequence from this signal':pv.status==='expired'?'Opportunity window has passed':'Personal consequence not established'):
+      'Checking which changes actually matter to you';
     if($('twinIntelligenceAction')){
-      const plan=actionGraphData?.plan||{},planSteps=plan.steps||[],auto=planSteps.filter(x=>x.auto_allowed).length,approval=planSteps.filter(x=>x.approval_required).length;
-      const base=intel.next_action||intel.direction?.summary||'No action currently clears the reasoning threshold.';
-      $('twinIntelligenceAction').textContent=planSteps.length?`${base} · AUTO ${auto} · APPROVAL ${approval}`:base;
+      const plan=actionGraphData?.plan||{},matched=plan.candidate_id&&plan.candidate_id===personalValueData?.candidate_id;
+      const steps=matched?plan.steps||[]:[],auto=steps.filter(x=>x.auto_allowed).length,approval=steps.filter(x=>x.approval_required).length;
+      const base=isPersonal?(pv.next_move?.detail||'Verify the next personal decision gate.'):
+        (pv?.missing_single_question||pv?.next_move?.detail||'No action is justified by the available personal evidence.');
+      $('twinIntelligenceAction').textContent=steps.length?`${base} · ${auto} auto-eligible steps planned · ${approval} approval gates`:base;
     }
-    const robust=intel.robustness?.score;
-    if(intel.pathway&&$('lifeTwinStatus'))$('lifeTwinStatus').textContent=`REASONING · ${flow}${robust!=null?' · ROBUST '+Math.round(Number(robust)):''}`;
+    if($('lifeTwinStatus'))$('lifeTwinStatus').textContent=isPersonal?
+      'PERSONAL IMPACT · '+String(pv.status).replaceAll('_',' ').toUpperCase():
+      hasPerson?'PERSONAL FIT · '+String(pv.status).replaceAll('_',' ').toUpperCase():'PERSONAL FIT · UNVERIFIED';
     requestAnimationFrame(drawIntelligenceLinks);
   }
 
@@ -164,9 +186,12 @@
     const box=$('lifeTwinDetail'),intel=consequenceData?.intelligence||{},steps=intel.causal_path||[];if(!box)return;
     const flow=intel.direction?.label||String(intel.pathway||'STATE_TO_DECISION').replaceAll('_',' → ');
     const path=steps.length?`<div class="causal-path">${steps.map((x,i)=>`<div class="causal-step"><span>${i+1}</span><b>${esc(x.label||x.kind||'Step')}</b><small>${esc(x.text||'')}</small></div>${i<steps.length-1?'<i>→</i>':''}`).join('')}</div>`:'<div class="empty-copy">No causal path has been generated yet.</div>';
-    const mind=(intel.what_would_change_mind||[])[0],plan=actionGraphData?.plan||{},planSteps=plan.steps||[];
-    const actionPath=planSteps.length?`<div class="action-graph-head"><span>ACTION GRAPH</span><small>${esc(plan.objective||'Guarded execution path')}</small></div><div class="action-graph-path">${planSteps.map((x,i)=>`<div class="action-step ${x.approval_required?'approval':'auto'} ${x.status==='blocked'?'blocked':''}"><span>${i+1}</span><b>${esc(x.label||x.id)}</b><small>${x.approval_required?'APPROVAL':'AUTO'}</small></div>${i<planSteps.length-1?'<i>→</i>':''}`).join('')}</div>`:''; 
-    box.innerHTML=`<span>${esc(flow)} · CAUSAL MODEL</span><b>${esc(intel.title||'Current reasoning path')}</b>${path}${mind?`<p class="life-intel-reason"><strong>What could change this:</strong> ${esc(mind.condition||mind.question||mind)}</p>`:''}${actionPath}`;
+    const pv=currentPersonalValue(),mind=(intel.what_would_change_mind||[])[0],plan=actionGraphData?.plan||{},planSteps=plan.candidate_id===personalValueData?.candidate_id?plan.steps||[]:[];
+    const links=pv?.surface?(pv.why_you||[]).slice(0,3).map(x=>x.fact):[];
+    const why=links.length?`<p class="life-intel-reason"><strong>Why this is personal:</strong> ${esc(links.join(' · '))}</p>`:'';
+    const unknown=pv?.surface&&pv.not_known?.length?`<p class="life-intel-reason"><strong>What remains unverified:</strong> ${esc(pv.not_known[0])}</p>`:'';
+    const actionPath=planSteps.length?`<div class="action-graph-head"><span>ACTION GRAPH</span><small>${esc(plan.objective||'Guarded execution path')}</small></div><div class="action-graph-path">${planSteps.map((x,i)=>`<div class="action-step ${x.approval_required?'approval':'auto'} ${x.status==='blocked'?'blocked':''}"><span>${i+1}</span><b>${esc(x.label||x.id)}</b><small>${x.approval_required?'APPROVAL':'AUTO-ELIGIBLE'}</small></div>${i<planSteps.length-1?'<i>→</i>':''}`).join('')}</div>`:''; 
+    box.innerHTML=`<span>${esc(flow)} · CAUSAL MODEL</span><b>${esc(intel.title||'Current reasoning path')}</b>${path}${why}${unknown}${mind&&pv?.surface?`<p class="life-intel-reason"><strong>What could change this:</strong> ${esc(mind.condition||mind.question||mind)}</p>`:''}${actionPath}`;
     document.querySelectorAll('[data-life-node]').forEach(n=>n.classList.remove('selected'));
   }
   function showDetail(type){
@@ -180,15 +205,22 @@
     else if(type==='capabilities'){title='Capabilities';sub='EXECUTION CAPACITY';rows=[['Recorded',counts.capabilities??0],['Model coverage',`${t.model_completeness_pct??0}%`]];}
     else if(type==='assets'){title='Assets, resources & sources';sub='RESOURCE MODEL';rows=[['Recorded resources',counts.resources??0],['Connected sources',counts.connected_sources??sources.length],['Source evidence',sources.reduce((a,x)=>a+Number(x.evidence_count||0),0)],['Status',(counts.resources||0)>0?'available to reasoning':'not yet modeled']];}
     else {title=b.title||'Bottleneck unverified';sub='BINDING CONSTRAINT';rows=[['Type',b.type||'unknown'],['Evidence',(operatingData?.records||[]).length?`${(operatingData.records||[]).length} operating records`:'insufficient operating data']];}
-    const impact=(consequenceData?.intelligence?.affected_nodes||[]).find(x=>x.id===type);
-    box.innerHTML=`<span>${esc(sub)}</span><b>${esc(title)}</b>${detailRows(rows)}${impact?`<p class="life-intel-reason"><strong>PIOS consequence:</strong> ${esc(impact.reason)}</p>`:''}`;
+    const pv=currentPersonalValue(),personalLink=pv?.surface?(pv.why_you||[]).find(x=>x.node===type):null;
+    box.innerHTML=`<span>${esc(sub)}</span><b>${esc(title)}</b>${detailRows(rows)}${personalLink?`<p class="life-intel-reason"><strong>Why this affects you:</strong> ${esc(personalLink.fact)}</p>`:''}`;
     document.querySelectorAll('[data-life-node]').forEach(n=>n.classList.toggle('selected',n.dataset.lifeNode===type));
   }
 
   async function loadLifeTwin(){
     ensureShell();if(!localStorage.getItem('pios_token')||typeof window.api!=='function')return;
-    try{const [t,o,r,c,s,a]=await Promise.all([window.api('/functions/v1/trajectory-context'),window.api('/functions/v1/operating-memory'),window.api('/rest/v1/reasoning_runs?select=reasoning_version,thesis,uncertainties,recommendation,metadata,generated_at&order=generated_at.desc&limit=1'),window.api('/functions/v1/consequence-engine'),window.api('/functions/v1/future-simulator'),window.api('/functions/v1/action-graph')]);twinData=t;operatingData=o;reasoningData=Array.isArray(r)?r[0]||null:null;consequenceData=c;simulationData=s;actionGraphData=a;render();}
-    catch(_){if($('lifeTwinStatus'))$('lifeTwinStatus').textContent='STATE TEMPORARILY UNAVAILABLE';}
+    const endpoints=['/functions/v1/trajectory-context','/functions/v1/operating-memory','/rest/v1/reasoning_runs?select=reasoning_version,thesis,uncertainties,recommendation,metadata,generated_at&order=generated_at.desc&limit=1','/functions/v1/consequence-engine','/functions/v1/future-simulator','/functions/v1/action-graph','/functions/v1/personal-consequence'];
+    const results=await Promise.allSettled(endpoints.map(path=>window.api(path)));
+    const value=i=>results[i].status==='fulfilled'?results[i].value:null;
+    twinData=value(0)||twinData;operatingData=value(1)||operatingData;
+    reasoningData=Array.isArray(value(2))?value(2)[0]||null:reasoningData;
+    consequenceData=value(3)||consequenceData;simulationData=value(4)||simulationData;
+    actionGraphData=value(5)||actionGraphData;personalValueData=value(6)||personalValueData;
+    if(twinData||operatingData)render();
+    else if($('lifeTwinStatus'))$('lifeTwinStatus').textContent='PERSONAL STATE CURRENTLY UNAVAILABLE';
   }
 
   function installHooks(){
