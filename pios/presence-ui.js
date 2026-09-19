@@ -3,7 +3,7 @@
  'use strict';
  const $=id=>document.getElementById(id);
  const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- let council=null,personal=null,works=[],loadingSeq=0,loadedToken=null;
+ let council=null,personal=null,works=[],loadingSeq=0,loadedToken=null,autoPreparedForToken=null;
  const label=(x)=>x?'REVIEWED '+new Intl.DateTimeFormat('en-CA',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(x)):'NO VERIFIED REVIEW';
  const currentWork=()=>works.find(w=>w?.status==='prepared'&&w?.is_current&&w?.content?.action_status?.preparation==='completed'&&w?.content?.action_status?.external_contact==='not_performed'&&w?.content?.draft?.external_message_sent===false)||null;
  function mount(){
@@ -109,6 +109,17 @@
     loadedToken=token;works=Array.isArray(result?.works)?result.works:[];
   }catch(_){if(seq!==loadingSeq)return;works=[];}
   render();
+  const relevant=Array.isArray(council?.specialists)&&council.specialists.some(x=>x.id==='business'&&x.status!=='watch');
+  // An owned quote may be prepared internally once per connected session.
+  // The operation is idempotent for an unchanged source and never sends anything.
+  if(relevant&&!currentWork()&&autoPreparedForToken!==token){
+    autoPreparedForToken=token;
+    try{
+      const prep=await window.api('/functions/v1/executive-workbench',{method:'POST',
+        body:JSON.stringify({operation:'prepare_quote'})});
+      if(prep?.prepared&&localStorage.getItem('pios_token')===token)await loadWork();
+    }catch(_){ /* An actual preparation failure must remain visible as not prepared. */ }
+  }
  }
  async function prepareQuote(){
   if(typeof window.api!=='function'||!localStorage.getItem('pios_token'))return null;
@@ -117,8 +128,8 @@
  }
  function update({council:nextCouncil,personalValue,asOf}={}){
   const token=localStorage.getItem('pios_token');
-  if(!token){council=null;personal=null;works=[];loadedToken=null;window.__piosPresenceAsOf=null;if($('preparedDrawer'))$('preparedDrawer').classList.add('hidden');render();return}
-  if(loadedToken&&loadedToken!==token){works=[];loadedToken=null}
+  if(!token){council=null;personal=null;works=[];loadedToken=null;autoPreparedForToken=null;window.__piosPresenceAsOf=null;if($('preparedDrawer'))$('preparedDrawer').classList.add('hidden');render();return}
+  if(loadedToken&&loadedToken!==token){works=[];loadedToken=null;autoPreparedForToken=null}
   council=nextCouncil||null;personal=personalValue||null;
   window.__piosPresenceAsOf=asOf||new Date().toISOString();
   render();loadWork();
