@@ -60,5 +60,29 @@ if(simulation?.ok&&simulation?.preferred_scenario&&next?.candidate_id){
     if(alt){next={decision:isPipeline(alt)?'FOLLOW_UP':'INVESTIGATE',strategy_path:isPipeline(alt)?'YOU_TO_WORLD':'WORLD_TO_YOU',module_code:alt.module_code,confidence:Number(alt.confidence||70),title:alt.title,action:alt.next_action||'Take the smallest reversible next step on the more robust alternative.',candidate_id:alt.id,score:Number(alt.score||0),why:'Counterfactual simulation shows the alternative produces a materially more robust Twin state under current assumptions.',simulation:simTrace};simulationOverride=true;}
   }else next={...next,simulation:simTrace};
 }
+let personalization:any=null,personalizationSuppressed=false;
+if(next?.candidate_id){
+  try{
+    const pr=await call('personal-consequence',auth,{candidate_id:next.candidate_id});
+    if(pr?.ok&&pr.personal_value){
+      personalization=pr.personal_value;const pv=personalization;
+      const personalTrace={version:pv.version,status:pv.status,why_you:(pv.why_you||[]).slice(0,4),not_known:(pv.not_known||[]).slice(0,5),next_move:pv.next_move||null,counts_as_won:pv.actual_state_change===true};
+      if(['not_personal','expired'].includes(pv.status)){
+        next=proactiveFallback(base.self_model,active,'The previous top external candidate has no documented personal connection to the active goal, or its window has expired. Do not display it as a best next move.');
+        next={...next,personal_intelligence:personalTrace};
+        sequence=null;personalizationSuppressed=true;
+      }else if(['context_only','needs_personal_evidence'].includes(pv.status)){
+        next={...next,decision:'DIAGNOSE',strategy_path:'UNKNOWN_TO_LEARN',action:pv.next_move?.detail||pv.missing_single_question||'Verify whether this event is personally relevant before devoting attention.',why:'The event may be interesting, but its personal executability is not established. Verify the person-specific link before treating it as an opportunity.',personal_intelligence:personalTrace};
+        sequence=null;
+      }else if(pv.status==='investigate'||pv.status==='potential_next_step'){
+        const mustVerify=pv.not_known?.length>0;
+        next={...next,decision:mustVerify&&['ACT','APPROVE','DO_IT'].includes(String(next.decision).toUpperCase())?'INVESTIGATE':next.decision,
+          action:pv.next_move?.detail||next.action,
+          why:'Personal consequence: '+(pv.why_you||[]).slice(0,3).map((x:any)=>x.fact).join(' ')+' Unknowns remain explicit and a quotation is never counted as a win.',
+          personal_intelligence:personalTrace};
+      }
+    }
+  }catch(e){personalization={ok:false,error:String(e).slice(0,250)}}
+}
 if(sequence?.steps?.length){const mods=sequence.steps.map((x:any)=>String(x.module_code||''));if(mods.some((m:string)=>m&&!active.has(m)))sequence=null}
-const shield={...(strat.attention_shield||{}),surfaced:validPortfolio.length+(proactive?1:0),suppressed:Math.max(Number(strat.attention_shield?.suppressed||0),Math.max(0,Number(strat.attention_shield?.input_candidates||0)-validPortfolio.length))};return J({...base,strategy:{...strat,next_best_move:next,sequence,portfolio:validPortfolio,horizons,attention_shield:shield},alignment_guard:{version:'decision_engine_v10_counterfactual_simulation',replaced_inactive_top:replaced,proactive_fallback:proactive,owned_pipeline_priority_applied:pipelinePriority,evidence_tiebreak_applied:tieBreak,cognitive_override_applied:cognitiveOverride,reasoning_override_applied:reasoningOverride,simulation_override_applied:simulationOverride,cognitive_engine:cognition?.engine_version||null,reasoning_engine:reasoning?.reasoning_version||null,simulation_engine:simulation?.engine_version||null,active_modules:[...active],watch_modules:[...watch],hygiene,principle:'Raw scores are subordinate to cognition. PIOS forms a thesis, exposes uncertainty, compares counterfactuals, simulates future Twin states, tests disconfirming evidence and changes course only when an alternative is materially more robust.'}})}catch(e){return J({error:String(e)},500)}});
+const shield={...(strat.attention_shield||{}),surfaced:validPortfolio.length+(proactive?1:0),suppressed:Math.max(Number(strat.attention_shield?.suppressed||0),Math.max(0,Number(strat.attention_shield?.input_candidates||0)-validPortfolio.length))};return J({...base,strategy:{...strat,next_best_move:next,sequence,portfolio:validPortfolio,horizons,attention_shield:shield},alignment_guard:{version:'decision_engine_v10_counterfactual_simulation',replaced_inactive_top:replaced,proactive_fallback:proactive,owned_pipeline_priority_applied:pipelinePriority,evidence_tiebreak_applied:tieBreak,cognitive_override_applied:cognitiveOverride,reasoning_override_applied:reasoningOverride,simulation_override_applied:simulationOverride,personalization_suppressed:personalizationSuppressed,personalization_status:personalization?.status||'unverified',personalization_version:personalization?.version||null,cognitive_engine:cognition?.engine_version||null,reasoning_engine:reasoning?.reasoning_version||null,simulation_engine:simulation?.engine_version||null,active_modules:[...active],watch_modules:[...watch],hygiene,principle:'Raw scores are subordinate to cognition. PIOS forms a thesis, exposes uncertainty, compares counterfactuals, simulates future Twin states, tests disconfirming evidence and changes course only when an alternative is materially more robust.'}})}catch(e){return J({error:String(e)},500)}});
