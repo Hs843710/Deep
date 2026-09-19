@@ -92,9 +92,27 @@ Each scenario should project bounded comparative effects on goal progress, finan
 
 A simulation may override the current recommendation only when the alternative is materially more robust, not because of a marginal score difference. Simulated state is always visually distinguishable from observed state and is never written back as reality.
 
-### 7. Action & outcome loop
+### 7. Guarded action graph & outcome loop
 A recommendation becomes:
-decision → bounded action → lifecycle → real outcome → calibration review → policy update.
+decision → action graph → autonomous preparation → approval gate → consequential action → real outcome → calibration review → policy update.
+
+PIOS may autonomously:
+- retrieve and inspect evidence
+- verify eligibility, constraints and assumptions
+- extract scope and dependencies
+- calculate economics/capacity
+- prepare drafts, checklists, workspaces and internal decision packages
+- monitor approved triggers
+- measure outcomes and update the Twin
+
+PIOS must require explicit human approval before:
+- sending consequential external communications
+- submitting bids/applications/offers
+- spending or committing material capital
+- signing/accepting contracts
+- making legal, financial or other irreversible commitments
+
+The action graph is not a task list. It is the operational expression of the reasoning path, including dependencies, blockers and approval boundaries.
 
 ## Decision quality hierarchy
 
