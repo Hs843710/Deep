@@ -2,7 +2,7 @@
 .world-stage.twin-mode>.globe-scene,.world-stage.twin-mode>.life-twin-stage{grid-row:2;grid-column:1}
 .world-stage.twin-mode>.globe-scene{display:flex;z-index:1;opacity:.88;pointer-events:auto}
 .world-stage.twin-mode>.life-twin-stage{z-index:2;background:transparent;border-color:rgba(47,231,255,.08);pointer-events:none}
-.world-stage.twin-mode>.life-twin-stage .life-twin-heading,.world-stage.twin-mode>.life-twin-stage .life-node,.world-stage.twin-mode>.life-twin-stage .life-twin-detail{pointer-events:auto}
+.world-stage.twin-mode>.life-twin-stage .life-twin-heading,.world-stage.twin-mode>.life-twin-stage .life-node,.world-stage.twin-mode>.life-twin-stage .life-twin-detail,.world-stage.twin-mode>.life-twin-stage .executive-council-strip{pointer-events:auto}
 .world-stage.twin-mode .life-core{display:none}
 .world-stage.twin-mode .life-orbit{opacity:.48}
 .world-stage.twin-mode .globe-badge{opacity:.82}
