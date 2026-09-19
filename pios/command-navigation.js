@@ -35,6 +35,7 @@
       system:'Source coverage, data quality, model changes and benchmarks'
     })[chosen];
     if(chosen==='world'||chosen==='twin'||chosen==='command')setWorldMode(chosen);
+    if(chosen==='system')document.querySelectorAll('.compact-detail.compact-collapsed').forEach(panel=>panel.classList.remove('compact-collapsed'));
     // Only reveal, never delete, state owned by other modules.
     if(scroll) document.querySelector('.workspace-header')?.scrollIntoView({behavior:'smooth',block:'start'});
   }
@@ -48,6 +49,7 @@
       focusView('twin');
       const settings=$('settingsBtn');
       if(settings&&!settings.classList.contains('hidden')) settings.click();
+      else $('authBtn')?.click();
     });
     // A separate mode switch within the globe must keep the global navigation in sync.
     document.addEventListener('click',event=>{
