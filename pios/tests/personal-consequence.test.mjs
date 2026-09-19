@@ -43,6 +43,7 @@ const crossGoal=evaluateAcrossGoals({
 });
 assert.equal(crossGoal.status,"investigate","an opportunity must be considered against secondary active goals");
 assert.equal(crossGoal.goal_id,"business2","relevant secondary goal should be selected over unrelated primary goal");
+assert.equal(crossGoal.considered_goals[0].goal_id,"business2","multi-goal audit must identify the chosen goal");
 assert.equal(crossGoal.considered_goals.length,2);
 
 const unknownMoney=evaluate({goal,candidate,capabilities:[{name:"roofing"}],signal});
