@@ -24,14 +24,33 @@
         window.api('/functions/v1/operating-memory'),
         window.api('/rest/v1/connected_source_sync_state?select=source_kind,status,last_observed_at,evidence_count&order=last_sync_at.desc')
       ]);
-      const q=score(t,o,sources), status=$('lifeTwinStatus'), core=$('lifeCoreState'), detail=$('lifeTwinDetail');
+      const q=score(t,o,sources), status=$('lifeTwinStatus'), core=$('lifeCoreState');
       if(status){status.textContent=`LIVE EVIDENCE ${q.pct}%`;status.title='Coverage of the Digital Twin backed by current observed state. Setup fields alone do not make this 100%.';}
       const gp=t?.digital_twin?.primary_goal?.progress?.progress_pct;
       if(core) core.textContent=`${Number(gp||0).toFixed(0)}% goal · ${q.pct}% observed`;
       if($('lifeBusinessMeta')) $('lifeBusinessMeta').textContent=q.records?`${q.records} observed operating record${q.records===1?'':'s'}`:'NO LIVE PIPELINE DATA';
       if($('lifeAssetsMeta')) $('lifeAssetsMeta').textContent=q.assets?`${q.assets} modeled resources`:'NOT MODELED';
-      if(detail&&!detail.querySelector('.life-detail-grid')){
-        detail.innerHTML=`<span>MODEL TRUTH</span><b>The Twin separates configured profile data from observed life evidence.</b><div class="life-detail-grid"><div><span>Live evidence</span><b>${q.pct}%</b></div><div><span>Operating records</span><b>${q.records}</b></div><div><span>Connected sources</span><b>${q.sources}</b></div><div><span>Observed evidence</span><b>${q.evidence}</b></div><div><span>Real outcomes</span><b>${q.outcomes}</b></div><div><span>Resources modeled</span><b>${q.assets}</b></div></div><small style="display:block;margin-top:8px;color:#6f9db9">Sources: ${q.sourceNames.join(' · ')||'none'}<br>Still missing: ${q.missing.join(' · ')||'none in the current evidence model'}</small>`;
+      // Model-coverage diagnostics belong to Evidence & System, never the live decision surface.
+      // Do not overwrite a Chief of Staff brief or the person's selected Twin node.
+      const host=document.querySelector('.right-rail');
+      if(host&&!$('modelTruthDiagnostics')){
+        const panel=document.createElement('article');panel.className='panel model-truth-panel';
+        panel.id='modelTruthDiagnostics';
+        panel.innerHTML='<div class="panel-title"><span>Observed model coverage</span></div><div id="modelTruthMetrics" class="empty-copy"></div>';
+        host.appendChild(panel);
+      }
+      const metrics=$('modelTruthMetrics');
+      if(metrics){
+        metrics.replaceChildren();
+        const lines=[
+          'Observed evidence coverage: '+q.pct+'%',
+          'Operating records: '+q.records+' · Real outcomes: '+q.outcomes,
+          'Connected sources: '+q.sources+' · Evidence records: '+q.evidence,
+          'Modeled resources: '+q.assets,
+          'Sources: '+(q.sourceNames.join(' · ')||'none'),
+          'Evidence still missing: '+(q.missing.join(' · ')||'none recorded')
+        ];
+        for(const line of lines){const el=document.createElement('p');el.textContent=line;metrics.appendChild(el);}
       }
     }catch(_){ }
   }
