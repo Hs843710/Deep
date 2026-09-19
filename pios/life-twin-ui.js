@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const $=id=>document.getElementById(id);
-  let twinData=null,operatingData=null,reasoningData=null,consequenceData=null,simulationData=null,activeScenarioId=null,worldCount=0;
+  let twinData=null,operatingData=null,reasoningData=null,consequenceData=null,simulationData=null,actionGraphData=null,activeScenarioId=null,worldCount=0;
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const money=(v,c='CAD')=>v==null?'—':Number(v).toLocaleString('en-CA',{style:'currency',currency:c,maximumFractionDigits:0});
   const fmtDate=v=>{if(!v)return'—';const d=new Date(v);return Number.isNaN(d.getTime())?'—':d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})};
@@ -95,7 +95,11 @@
     const flow=intel.direction?.label||String(intel.pathway||'STATE_TO_DECISION').replaceAll('_',' → ');
     if($('twinFlowChip'))$('twinFlowChip').textContent=flow;
     if($('twinIntelligenceTitle'))$('twinIntelligenceTitle').textContent=intel.title||'PIOS is mapping the current decision.';
-    if($('twinIntelligenceAction'))$('twinIntelligenceAction').textContent=intel.next_action||intel.direction?.summary||'No action currently clears the reasoning threshold.';
+    if($('twinIntelligenceAction')){
+      const plan=actionGraphData?.plan||{},planSteps=plan.steps||[],auto=planSteps.filter(x=>x.auto_allowed).length,approval=planSteps.filter(x=>x.approval_required).length;
+      const base=intel.next_action||intel.direction?.summary||'No action currently clears the reasoning threshold.';
+      $('twinIntelligenceAction').textContent=planSteps.length?`${base} · AUTO ${auto} · APPROVAL ${approval}`:base;
+    }
     const robust=intel.robustness?.score;
     if(intel.pathway&&$('lifeTwinStatus'))$('lifeTwinStatus').textContent=`REASONING · ${flow}${robust!=null?' · ROBUST '+Math.round(Number(robust)):''}`;
     requestAnimationFrame(drawIntelligenceLinks);
@@ -160,8 +164,9 @@
     const box=$('lifeTwinDetail'),intel=consequenceData?.intelligence||{},steps=intel.causal_path||[];if(!box)return;
     const flow=intel.direction?.label||String(intel.pathway||'STATE_TO_DECISION').replaceAll('_',' → ');
     const path=steps.length?`<div class="causal-path">${steps.map((x,i)=>`<div class="causal-step"><span>${i+1}</span><b>${esc(x.label||x.kind||'Step')}</b><small>${esc(x.text||'')}</small></div>${i<steps.length-1?'<i>→</i>':''}`).join('')}</div>`:'<div class="empty-copy">No causal path has been generated yet.</div>';
-    const mind=(intel.what_would_change_mind||[])[0];
-    box.innerHTML=`<span>${esc(flow)} · CAUSAL MODEL</span><b>${esc(intel.title||'Current reasoning path')}</b>${path}${mind?`<p class="life-intel-reason"><strong>What could change this:</strong> ${esc(mind.condition||mind.question||mind)}</p>`:''}`;
+    const mind=(intel.what_would_change_mind||[])[0],plan=actionGraphData?.plan||{},planSteps=plan.steps||[];
+    const actionPath=planSteps.length?`<div class="action-graph-head"><span>ACTION GRAPH</span><small>${esc(plan.objective||'Guarded execution path')}</small></div><div class="action-graph-path">${planSteps.map((x,i)=>`<div class="action-step ${x.approval_required?'approval':'auto'} ${x.status==='blocked'?'blocked':''}"><span>${i+1}</span><b>${esc(x.label||x.id)}</b><small>${x.approval_required?'APPROVAL':'AUTO'}</small></div>${i<planSteps.length-1?'<i>→</i>':''}`).join('')}</div>`:''; 
+    box.innerHTML=`<span>${esc(flow)} · CAUSAL MODEL</span><b>${esc(intel.title||'Current reasoning path')}</b>${path}${mind?`<p class="life-intel-reason"><strong>What could change this:</strong> ${esc(mind.condition||mind.question||mind)}</p>`:''}${actionPath}`;
     document.querySelectorAll('[data-life-node]').forEach(n=>n.classList.remove('selected'));
   }
   function showDetail(type){
@@ -182,7 +187,7 @@
 
   async function loadLifeTwin(){
     ensureShell();if(!localStorage.getItem('pios_token')||typeof window.api!=='function')return;
-    try{const [t,o,r,c,s]=await Promise.all([window.api('/functions/v1/trajectory-context'),window.api('/functions/v1/operating-memory'),window.api('/rest/v1/reasoning_runs?select=reasoning_version,thesis,uncertainties,recommendation,metadata,generated_at&order=generated_at.desc&limit=1'),window.api('/functions/v1/consequence-engine'),window.api('/functions/v1/future-simulator')]);twinData=t;operatingData=o;reasoningData=Array.isArray(r)?r[0]||null:null;consequenceData=c;simulationData=s;render();}
+    try{const [t,o,r,c,s,a]=await Promise.all([window.api('/functions/v1/trajectory-context'),window.api('/functions/v1/operating-memory'),window.api('/rest/v1/reasoning_runs?select=reasoning_version,thesis,uncertainties,recommendation,metadata,generated_at&order=generated_at.desc&limit=1'),window.api('/functions/v1/consequence-engine'),window.api('/functions/v1/future-simulator'),window.api('/functions/v1/action-graph')]);twinData=t;operatingData=o;reasoningData=Array.isArray(r)?r[0]||null:null;consequenceData=c;simulationData=s;actionGraphData=a;render();}
     catch(_){if($('lifeTwinStatus'))$('lifeTwinStatus').textContent='STATE TEMPORARILY UNAVAILABLE';}
   }
 
