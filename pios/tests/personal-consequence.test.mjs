@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
-const source=fs.readFileSync("supabase/functions/personal-consequence/value-core.js","utf8").replace("export {evaluatePersonalConsequence};",";evaluatePersonalConsequence");
-const evaluate=vm.runInNewContext(source);
+const source=fs.readFileSync("supabase/functions/personal-consequence/value-core.js","utf8").replace(/export\s*\{[^}]*\};/g,"");
+const {evaluatePersonalConsequence:evaluate,evaluateAcrossGoals}=vm.runInNewContext(source+"\n({evaluatePersonalConsequence,evaluateAcrossGoals})");
 const candidate={id:"11111111-1111-4111-8111-111111111111",title:"Roofing maintenance tender",module_code:"construction",window_end:"2026-10-10T00:00:00Z",eligibility_status:"unknown",capital_required_high:5000,scope_match:{matches:["roofing"],location:"Calgary"}};
 const signal={id:"s1",title:"City roofing tender",locality:"Calgary",source_url:"https://example.org/tender"};
 const goal={id:"g1",title:"Win projects",domain:"business_growth",current_value:0,target_value:3};
@@ -35,6 +35,16 @@ assert.equal(context.surface,false);
 const noGoal=evaluate({candidate,signal});
 assert.equal(noGoal.status,"needs_goal");
 assert.equal(noGoal.next_move.type,"ASK_ONE_QUESTION");
+const crossGoal=evaluateAcrossGoals({
+  profile:{home_region:"Calgary"},
+  goals:[{id:"career1",title:"Advance my office career",domain:"career_income"},{...goal,id:"business2"}],
+  contracts:[{goal_id:"business2",desired_state:{minimum_gross_margin_pct:25}}],
+  capabilities:[{name:"roofing"}],candidate,signal
+});
+assert.equal(crossGoal.status,"investigate","an opportunity must be considered against secondary active goals");
+assert.equal(crossGoal.goal_id,"business2","relevant secondary goal should be selected over unrelated primary goal");
+assert.equal(crossGoal.considered_goals.length,2);
+
 const unknownMoney=evaluate({goal,candidate,capabilities:[{name:"roofing"}],signal});
 assert.equal(unknownMoney.possible_effect.recorded_deployable,null,"missing finance must not become $0");
-console.log("PASS 11 personal-consequence tests: individual difference, owned quote, progress integrity, margin, reserve, deadline, context, no goal, unknown finance");
+console.log("PASS 12 personal-consequence tests: individual difference, owned quote, progress integrity, margin, reserve, deadline, context, no goal, unknown finance");
