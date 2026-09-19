@@ -35,6 +35,8 @@ jobs:
           done
       - name: Test person-specific intelligence
         run: node pios/tests/personal-consequence.test.mjs
+      - name: Test Executive Intelligence Council
+        run: node pios/tests/executive-council.test.mjs
       - name: Assemble production shell
         run: |
           python - <<'PY'
