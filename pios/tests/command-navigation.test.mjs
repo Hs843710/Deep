@@ -38,7 +38,7 @@ const document={
  querySelectorAll(selector){return selector==='[data-pios-go]'?buttons:[]},
  addEventListener:(name,fn)=>{docListeners[name]=fn}
 };
-for(const id of ['piosNavigation','worldModeBtn','twinModeBtn','workspaceTitle','workspaceHint','piosModelButton','settingsBtn'])element(id);
+for(const id of ['piosNavigation','worldModeBtn','twinModeBtn','workspaceTitle','workspaceHint','piosModelButton','settingsBtn','authBtn'])element(id);
 element('piosNavigation').querySelectorAll=()=>buttons;
 const window={};
 runInNewContext(script,{document,window});
@@ -55,6 +55,11 @@ assert.ok(stage.classList.contains('twin-mode')&&!stage.classList.contains('worl
 element('piosModelButton').click();
 assert.equal(document.body.dataset.piosView,'twin');
 assert.ok(clicked.includes('settingsBtn'),'model shortcut must invoke existing settings, not duplicate it');
+element('settingsBtn').classList.add('hidden');
+element('piosModelButton').click();
+assert.ok(clicked.includes('authBtn'),'model shortcut must open Connect when signed out');
+assert.ok(css.includes('.next-move>#strategyContext')&& !css.includes('.next-move>:not(#actionLearning)'),
+  'Action workspace must retain the approval buttons on the strategy card');
 docListeners.click({target:{closest:()=>element('worldModeBtn')}});
 assert.equal(document.body.dataset.piosView,'world','globe switch must keep global navigation in sync');
 console.log('PASS command-navigation: 6 views, Earth + Twin default, globe switch, Connect and core controls retained, model shortcut');
