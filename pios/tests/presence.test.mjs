@@ -25,4 +25,15 @@ assert.ok(presence.includes("result?.prepared&&currentWork()"),"the interface ca
 assert.ok(presence.includes("autoPreparedForToken!==token"),"safe preparation should run at most once per connected session");
 assert.ok(presence.includes("prep?.prepared&&localStorage.getItem('pios_token')===token"),"auto preparation may display results only for the same session");
 assert.ok(presence.includes("does not establish a continuous watch"),"no unconfigured always-on monitoring claims");
+assert.ok(presence.includes("strategyMove?.candidate_id"),"recorded strategies must remain visible even if the Council is unavailable");
+assert.ok(presence.includes("candidate_id:strategyMove.candidate_id"),"internal preparation must follow the selected owned opportunity");
+assert.ok(presence.includes("workError?'Prepared work is temporarily unavailable.'"),"failed preparation reads must not imply no work exists");
+const life=readFileSync("pios/life-twin-ui.js","utf8");
+assert.ok(life.includes("const critical=[")&&life.includes("const supplemental=["),"essential decisions must load ahead of simulations");
+assert.ok(life.includes("Promise.race"),"optional slow endpoints must not stall the executive brief");
+const nav=readFileSync("pios/command-navigation.css","utf8");
+assert.ok(nav.includes(".world-stage.world-mode{display:flex"),"world Earth must not inherit the phantom grid row");
+assert.ok(nav.includes(".world-stage.twin-mode>.presence-deck{grid-row:2"),"the executive decision must be visible on arrival");
+const truth=readFileSync("pios/model-truth-ui.js","utf8");
+assert.ok(truth.includes("modelTruthDiagnostics")&&!truth.includes("detail.innerHTML="),"coverage diagnostics must not overwrite selected decisions");
 console.log("PASS ambient executive presence: core Earth/Connect preserved, honest work status, guarded preparation and focused home");
