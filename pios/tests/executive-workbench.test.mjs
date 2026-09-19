@@ -1,0 +1,30 @@
+
+import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+import {runInNewContext} from "node:vm";
+const source=readFileSync("supabase/functions/executive-workbench/workbench-core.js","utf8").replace(/export\s*\{[^}]*\};/g,"");
+const prepare=runInNewContext(source+";prepareQuote;");
+const record={id:"11111111-1111-4111-8111-111111111111",title:"Northwest egress windows",customer:"Example property manager",
+ stage:"quoted",quoted_value:36813,updated_at:"2026-09-18T10:00:00Z",estimated_direct_cost:null,estimated_margin_pct:null};
+const w=prepare(record,{desired_state:{minimum_gross_margin_pct:25}},"2026-09-19T00:00:00Z");
+assert.equal(w.action_status.preparation,"completed");
+assert.equal(w.action_status.external_contact,"not_performed");
+assert.equal(w.draft.external_message_sent,false);
+assert.equal(w.draft.ready_to_send,false);
+assert.equal(w.draft.recipient,null);
+assert.equal(w.profit_qualification.verified_actual_profit,false);
+assert.equal(w.profit_qualification.passes_recorded_floor,null);
+assert.ok(w.internal_checks.some(x=>x.state==="needs_data"));
+assert.ok(w.draft.body.includes("Could you confirm"));
+assert.ok(!w.draft.body.includes("accepted"));
+assert.equal(w.evidence.find(x=>x.field==="quoted_value").value,36813);
+const cheap=prepare({...record,estimated_direct_cost:32000},{desired_state:{minimum_gross_margin_pct:25}});
+assert.equal(cheap.internal_checks[1].state,"below_floor");
+assert.equal(cheap.profit_qualification.passes_recorded_floor,false);
+const adequate=prepare({...record,estimated_direct_cost:26000},{desired_state:{minimum_gross_margin_pct:25}});
+assert.equal(adequate.profit_qualification.passes_recorded_floor,true);
+assert.throws(()=>prepare({...record,stage:"won"}),/quoted stage/);
+assert.throws(()=>prepare({...record,updated_at:null}),/timestamp/);
+const special=prepare({...record,title:"  <img src=x onerror=alert(1)>  "});
+assert.ok(special.draft.subject.includes("<img"),"Data stays literal; the presentation must use textContent");
+console.log("PASS executive workbench: factual quoted record, draft prepared, no external send, missing and low margin, stage gate, provenance");
