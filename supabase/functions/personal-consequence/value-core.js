@@ -33,9 +33,9 @@ function evaluatePersonalConsequence({profile={},goal=null,contract=null,capabil
  if(capabilityMatches.length)links.push({node:"capabilities",kind:"recorded_capability",fact:"Recorded capability: "+capabilityMatches.join(", ")+".",source:"capabilities"});
  const home=words(profile.home_region).split(" ")[0],place=" "+words([signal?.locality,signal?.region,candidate?.scope_match?.location,candidate?.scope_match?.city].filter(Boolean).join(" "))+" ";
  if(home.length>=4&&place.includes(" "+home+" "))links.push({node:"location",kind:"geography",fact:"Located in your recorded home region.",source:"profile:home_region"});
- const official=!!(signal?.source_url&&signal?.title);
- if(official)evidence.push({type:"observed_external",ref:"signal:"+signal.id,url:signal.source_url,observed_at:signal.published_at||signal.ingested_at||null});
- else if(!owned)unknowns.push("Authoritative source for the external opportunity is not verified.");
+ const linkedSource=!!(signal?.source_url&&signal?.title);
+ if(linkedSource)evidence.push({type:"linked_external_record",ref:"signal:"+signal.id,url:signal.source_url,observed_at:signal.published_at||signal.ingested_at||null});
+ else if(!owned)unknowns.push("Original source evidence for the external opportunity is not linked; verify before acting.");
  const deadline=time(candidate.window_end||signal?.deadline_at),asof=time(now)||Date.now();
  if(deadline!==null&&deadline<asof)return {...empty,status:"expired",goal:goalState,why_you:links,evidence,not_known:["Recorded deadline passed; official extension unknown."],next_move:{type:"VERIFY_REOPENING",detail:"Verify an official extension before investing time."}};
  if(!related&&!owned)return {...empty,status:"not_personal",goal:goalState,why_you:links,evidence,not_known:["No documented link to the active goal or owned state."],next_move:null};
