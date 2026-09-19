@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const $=id=>document.getElementById(id);
-  let twinData=null,operatingData=null,reasoningData=null,worldCount=0;
+  let twinData=null,operatingData=null,reasoningData=null,consequenceData=null,worldCount=0;
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const money=(v,c='CAD')=>v==null?'—':Number(v).toLocaleString('en-CA',{style:'currency',currency:c,maximumFractionDigits:0});
   const fmtDate=v=>{if(!v)return'—';const d=new Date(v);return Number.isNaN(d.getTime())?'—':d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})};
@@ -18,12 +18,16 @@
   function ensureShell(){
     const stage=document.querySelector('.world-stage');if(!stage||$('lifeTwinStage'))return;
     stage.classList.add('twin-mode');
-    const tabs=document.createElement('div');tabs.className='twin-mode-tabs';tabs.innerHTML=`<button id="twinModeBtn" class="active">DIGITAL TWIN</button><button id="worldModeBtn">WORLD <span id="worldModeCount">0</span></button>`;
+    const tabs=document.createElement('div');tabs.className='twin-mode-tabs';tabs.innerHTML=`<button id="twinModeBtn" class="active">TWIN + EARTH</button><button id="worldModeBtn">WORLD <span id="worldModeCount">0</span></button>`;
     stage.prepend(tabs);
     const twin=document.createElement('section');twin.id='lifeTwinStage';twin.className='life-twin-stage';twin.innerHTML=`
       <div class="life-twin-heading"><div><span>LIFE DIGITAL TWIN</span><b id="lifeTwinStatus">LIVE PERSONAL STATE</b></div><small id="lifeTwinUpdated">waiting for state</small></div>
       <div class="life-map">
         <div class="life-orbit orbit-one"></div><div class="life-orbit orbit-two"></div><div class="life-orbit orbit-three"></div>
+        <svg id="twinIntelligenceLayer" class="twin-intelligence-layer" aria-hidden="true">
+          <defs><marker id="intelArrow" markerWidth="8" markerHeight="8" refX="7" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z"></path></marker></defs>
+          <g id="twinIntelligenceLinks"></g>
+        </svg>
         <button class="life-node pos-goal" data-life-node="goal"><span>GOAL</span><b id="lifeGoalValue">—</b><small id="lifeGoalMeta">target</small></button>
         <button class="life-node pos-business" data-life-node="business"><span>BUSINESS</span><b id="lifeBusinessValue">—</b><small id="lifeBusinessMeta">operating state</small></button>
         <button class="life-node pos-projects" data-life-node="projects"><span>PROJECTS</span><b id="lifeProjectsValue">—</b><small id="lifeProjectsMeta">pipeline</small></button>
@@ -33,6 +37,11 @@
         <button class="life-node pos-assets" data-life-node="assets"><span>ASSETS</span><b id="lifeAssetsValue">—</b><small id="lifeAssetsMeta">recorded</small></button>
         <button class="life-node pos-bottleneck" data-life-node="bottleneck"><span>BOTTLENECK</span><b id="lifeBottleneckValue">—</b><small id="lifeBottleneckMeta">constraint</small></button>
         <div class="life-core"><div class="life-core-ring a"></div><div class="life-core-ring b"></div><div class="life-core-ring c"></div><div class="life-core-inner"><span>YOU</span><b id="lifeCoreAnchor">PERSONAL MODEL</b><small id="lifeCoreState">0% goal progress</small></div></div>
+      </div>
+      <div id="twinIntelligenceSummary" class="twin-intelligence-summary">
+        <span id="twinFlowChip">STATE → DECISION</span>
+        <b id="twinIntelligenceTitle">PIOS is mapping your state.</b>
+        <small id="twinIntelligenceAction">The Earth is the outside world; the Twin shows what it changes for you.</small>
       </div>
       <div id="lifeTwinDetail" class="life-twin-detail"><span>SELECT A NODE</span><b>Your current state is shown as a living model, not a news feed.</b><div></div></div>`;
     tabs.insertAdjacentElement('afterend',twin);
@@ -51,6 +60,42 @@
     const v=$(id+'Value'),m=$(id+'Meta'),node=v?.closest('.life-node');if(v)v.textContent=value;if(m)m.textContent=meta;if(node){node.classList.remove('node-good','node-warn','node-unknown');node.classList.add(state==='good'?'node-good':state==='warn'?'node-warn':state==='unknown'?'node-unknown':'');}
   }
 
+  function drawIntelligenceLinks(){
+    const map=document.querySelector('.life-map'),svg=$('twinIntelligenceLayer'),group=$('twinIntelligenceLinks');if(!map||!svg||!group)return;
+    const intel=consequenceData?.intelligence||{},visual=consequenceData?.visual_directive||{},affected=intel.affected_nodes||[];
+    const box=map.getBoundingClientRect(),w=Math.max(1,box.width),h=Math.max(1,box.height),cx=w/2,cy=h/2;
+    svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
+    group.innerHTML='';
+    affected.filter(x=>visual.active_nodes?.includes(x.id)||Number(x.weight||0)>=65).slice(0,7).forEach((x,i)=>{
+      const node=document.querySelector(`[data-life-node="${x.id}"]`);if(!node)return;
+      const r=node.getBoundingClientRect(),nx=r.left-box.left+r.width/2,ny=r.top-box.top+r.height/2;
+      const outward=intel.pathway==='WORLD_TO_YOU'||intel.pathway==='UNKNOWN_TO_LEARN';
+      const x1=outward?cx:nx,y1=outward?cy:ny,x2=outward?nx:cx,y2=outward?ny:cy;
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1',String(x1));line.setAttribute('y1',String(y1));line.setAttribute('x2',String(x2));line.setAttribute('y2',String(y2));
+      line.setAttribute('marker-end','url(#intelArrow)');line.setAttribute('class','intel-link'+(i===0?' primary':'')+(x.state==='uncertain'?' uncertain':''));
+      line.style.opacity=String(Math.max(.28,Math.min(.9,Number(x.weight||50)/100)));
+      group.appendChild(line);
+    });
+  }
+
+  function renderIntelligence(){
+    const intel=consequenceData?.intelligence||{},visual=consequenceData?.visual_directive||{},affected=intel.affected_nodes||[];
+    document.querySelectorAll('[data-life-node]').forEach(n=>n.classList.remove('node-intel','node-primary','node-uncertain'));
+    affected.forEach((x,i)=>{
+      const n=document.querySelector(`[data-life-node="${x.id}"]`);if(!n)return;
+      n.classList.add('node-intel');if(i===0)n.classList.add('node-primary');if(x.state==='uncertain')n.classList.add('node-uncertain');
+      n.style.setProperty('--intel-strength',String(Math.max(.35,Math.min(1,Number(x.weight||50)/100))));
+    });
+    const flow=intel.direction?.label||String(intel.pathway||'STATE_TO_DECISION').replaceAll('_',' → ');
+    if($('twinFlowChip'))$('twinFlowChip').textContent=flow;
+    if($('twinIntelligenceTitle'))$('twinIntelligenceTitle').textContent=intel.title||'PIOS is mapping the current decision.';
+    if($('twinIntelligenceAction'))$('twinIntelligenceAction').textContent=intel.next_action||intel.direction?.summary||'No action currently clears the reasoning threshold.';
+    const robust=intel.robustness?.score;
+    if(intel.pathway&&$('lifeTwinStatus'))$('lifeTwinStatus').textContent=`REASONING · ${flow}${robust!=null?' · ROBUST '+Math.round(Number(robust)):''}`;
+    requestAnimationFrame(drawIntelligenceLinks);
+  }
+
   function render(){
     ensureShell();const t=twinData?.digital_twin||{},state=t.current_state||{},goal=t.primary_goal||{},p=goal.progress||{},op=operatingData||t.operating_memory||{},s=op.summary||{},gt=op.goal_tracking||{},capital=state.capital||{},counts=t.counts||{},profile=state.profile||{},commitments=state.commitments||{},sources=state.sources||[];
     const projectCurrent=gt.projects?.current??p.current??0,projectTarget=gt.projects?.target??p.target??'—',goalPct=p.progress_pct??gt.projects?.progress_pct??0,rr=reasoningData||{},robust=rr.metadata?.robustness?.score,criticalUnknowns=(rr.uncertainties||[]).filter(x=>x?.critical).length;
@@ -65,6 +110,7 @@
     $('lifeCoreAnchor').textContent=profile.home_region||'PERSONAL MODEL';$('lifeCoreState').textContent=robust!=null?`ROBUST ${Number(robust).toFixed(0)} · ${criticalUnknowns} critical unknown${criticalUnknowns===1?'':'s'}`:`${Number(goalPct||0).toFixed(0)}% goal progress`;
     $('lifeTwinStatus').textContent=t.model_completeness_pct!=null?`CORE MODEL ${t.model_completeness_pct}%`:'LIVE PERSONAL STATE';$('lifeTwinUpdated').textContent=`updated ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
     if($('worldModeCount'))$('worldModeCount').textContent=String(worldCount||0);
+    renderIntelligence();
   }
 
   function detailRows(rows){return `<div class="life-detail-grid">${rows.filter(x=>x&&x[1]!=null).map(([k,v])=>`<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('')}</div>`}
@@ -79,13 +125,14 @@
     else if(type==='capabilities'){title='Capabilities';sub='EXECUTION CAPACITY';rows=[['Recorded',counts.capabilities??0],['Model coverage',`${t.model_completeness_pct??0}%`]];}
     else if(type==='assets'){title='Assets, resources & sources';sub='RESOURCE MODEL';rows=[['Recorded resources',counts.resources??0],['Connected sources',counts.connected_sources??sources.length],['Source evidence',sources.reduce((a,x)=>a+Number(x.evidence_count||0),0)],['Status',(counts.resources||0)>0?'available to reasoning':'not yet modeled']];}
     else {title=b.title||'Bottleneck unverified';sub='BINDING CONSTRAINT';rows=[['Type',b.type||'unknown'],['Evidence',(operatingData?.records||[]).length?`${(operatingData.records||[]).length} operating records`:'insufficient operating data']];}
-    box.innerHTML=`<span>${esc(sub)}</span><b>${esc(title)}</b>${detailRows(rows)}`;
+    const impact=(consequenceData?.intelligence?.affected_nodes||[]).find(x=>x.id===type);
+    box.innerHTML=`<span>${esc(sub)}</span><b>${esc(title)}</b>${detailRows(rows)}${impact?`<p class="life-intel-reason"><strong>PIOS consequence:</strong> ${esc(impact.reason)}</p>`:''}`;
     document.querySelectorAll('[data-life-node]').forEach(n=>n.classList.toggle('selected',n.dataset.lifeNode===type));
   }
 
   async function loadLifeTwin(){
     ensureShell();if(!localStorage.getItem('pios_token')||typeof window.api!=='function')return;
-    try{const [t,o,r]=await Promise.all([window.api('/functions/v1/trajectory-context'),window.api('/functions/v1/operating-memory'),window.api('/rest/v1/reasoning_runs?select=reasoning_version,thesis,uncertainties,recommendation,metadata,generated_at&order=generated_at.desc&limit=1')]);twinData=t;operatingData=o;reasoningData=Array.isArray(r)?r[0]||null:null;render();}
+    try{const [t,o,r,c]=await Promise.all([window.api('/functions/v1/trajectory-context'),window.api('/functions/v1/operating-memory'),window.api('/rest/v1/reasoning_runs?select=reasoning_version,thesis,uncertainties,recommendation,metadata,generated_at&order=generated_at.desc&limit=1'),window.api('/functions/v1/consequence-engine')]);twinData=t;operatingData=o;reasoningData=Array.isArray(r)?r[0]||null:null;consequenceData=c;render();}
     catch(_){if($('lifeTwinStatus'))$('lifeTwinStatus').textContent='STATE TEMPORARILY UNAVAILABLE';}
   }
 
@@ -93,6 +140,7 @@
     ensureShell();
     if(typeof window.renderExperience==='function'&&!window.renderExperience.__lifeTwinEnhanced){const original=window.renderExperience;const wrapped=function(d){worldCount=Array.isArray(d?.world_signals)?d.world_signals.length:worldCount;const r=original(d);setTimeout(loadLifeTwin,180);return r};wrapped.__lifeTwinEnhanced=true;window.renderExperience=wrapped;}
     if(typeof window.runIntelligence==='function'&&!window.runIntelligence.__lifeTwinEnhanced){const original=window.runIntelligence;const wrapped=async function(){const r=await original();setTimeout(loadLifeTwin,260);return r};wrapped.__lifeTwinEnhanced=true;window.runIntelligence=wrapped;}
+    if(!window.__piosTwinResizeBound){window.addEventListener('resize',()=>requestAnimationFrame(drawIntelligenceLinks));window.__piosTwinResizeBound=true;}
     if(localStorage.getItem('pios_token'))setTimeout(loadLifeTwin,1150);
   }
   window.loadLifeTwin=loadLifeTwin;
