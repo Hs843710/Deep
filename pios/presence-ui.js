@@ -5,7 +5,7 @@
  const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  let council=null,personal=null,works=[],loadingSeq=0,loadedToken=null;
  const label=(x)=>x?'REVIEWED '+new Intl.DateTimeFormat('en-CA',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(x)):'NO VERIFIED REVIEW';
- const currentWork=()=>works.find(w=>w?.status==='prepared'&&w?.is_current&&w?.content?.action_status?.preparation==='completed')||null;
+ const currentWork=()=>works.find(w=>w?.status==='prepared'&&w?.is_current&&w?.content?.action_status?.preparation==='completed'&&w?.content?.action_status?.external_contact==='not_performed'&&w?.content?.draft?.external_message_sent===false)||null;
  function mount(){
   const stage=document.querySelector('.world-stage');
   if(!stage||$('presenceDeck'))return;
