@@ -71,3 +71,22 @@ body[data-pios-view="command"] .left-rail>.rail-heading{grid-column:1/-1}}
 body[data-pios-view="command"] .left-rail{display:flex;flex-direction:column}
 body[data-pios-view="command"] .world-stage{width:100%;order:0}
 body[data-pios-view="command"] .left-rail{order:1}}
+
+
+/* Keep globe fully in view. Old implicit grid rows placed an empty 420px row above the Earth. */
+body[data-pios-view="world"] .world-stage.world-mode{display:flex;flex-direction:column;align-items:stretch;gap:10px;min-height:0}
+body[data-pios-view="world"] .world-stage.world-mode>.twin-mode-tabs{position:relative;top:auto;order:0;margin:0 auto 2px}
+body[data-pios-view="world"] .world-stage.world-mode>.world-heading{order:1;padding:2px 0}
+body[data-pios-view="world"] .world-stage.world-mode>.globe-scene{order:2;flex:none;height:min(48vw,510px);min-height:350px;max-height:510px}
+body[data-pios-view="world"] .world-stage.world-mode .globe-wrap{width:min(45vw,480px);height:min(45vw,480px);min-width:330px;min-height:330px;max-width:480px;max-height:480px}
+body[data-pios-view="world"] .world-stage.world-mode>.signal-inspector{order:3;margin:0 auto;width:min(760px,100%)}
+body[data-pios-view="world"] .world-stage.world-mode>.funnel{order:4}
+body:not([data-pios-view="system"]) .model-truth-panel{display:none}
+body[data-pios-view="system"] .model-truth-panel{display:block}
+body[data-pios-view="command"] .future-switcher,body[data-pios-view="command"] .life-twin-detail{display:none}
+body[data-pios-view="command"] .twin-intelligence-summary{pointer-events:auto}
+body[data-pios-view="command"] .life-twin-stage .executive-council-strip{pointer-events:auto}
+@media(max-width:680px){
+ body[data-pios-view="world"] .world-stage.world-mode>.globe-scene{height:350px;min-height:320px}
+ body[data-pios-view="world"] .world-stage.world-mode .globe-wrap{width:330px;height:330px;min-width:300px;min-height:300px}
+}
