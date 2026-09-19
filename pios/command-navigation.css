@@ -52,3 +52,22 @@ body[data-pios-view="decide"] .command-grid,body[data-pios-view="act"] .command-
 body[data-pios-view="decide"] .left-rail,body[data-pios-view="decide"] .right-rail,body[data-pios-view="act"] .left-rail,body[data-pios-view="act"] .right-rail,body[data-pios-view="system"] .left-rail,body[data-pios-view="system"] .right-rail{width:100%}}
 
 @media(max-width:980px){body[data-pios-view="command"] .world-stage,body[data-pios-view="twin"] .world-stage{top:auto}}
+
+
+/* Presence-first home: the digital Earth is the command center, not one card among three. */
+body[data-pios-view="command"] .command-grid{grid-template-columns:minmax(235px,300px) minmax(0,1fr)}
+body[data-pios-view="command"] .left-rail{grid-column:1}
+body[data-pios-view="command"] .world-stage{grid-column:2;position:relative;top:auto}
+body[data-pios-view="command"] .right-rail{display:none}
+body[data-pios-view="command"] .left-rail>.trajectory-panel{background:linear-gradient(160deg,rgba(6,31,46,.88),rgba(3,12,24,.97))}
+body[data-pios-view="command"] .left-rail>.capital-panel{border-color:rgba(25,255,211,.18)}
+body[data-pios-view="twin"] .presence-deck{display:none}
+body[data-pios-view="system"] .presence-deck,body[data-pios-view="decide"] .presence-deck,body[data-pios-view="act"] .presence-deck{display:none}
+@media(max-width:980px){body[data-pios-view="command"] .command-grid{grid-template-columns:1fr 1fr}
+body[data-pios-view="command"] .world-stage{grid-column:1/-1;grid-row:1}
+body[data-pios-view="command"] .left-rail{grid-column:1/-1;grid-row:2;display:grid;grid-template-columns:1fr 1fr}
+body[data-pios-view="command"] .left-rail>.rail-heading{grid-column:1/-1}}
+@media(max-width:680px){body[data-pios-view="command"] .command-grid{display:flex;flex-direction:column}
+body[data-pios-view="command"] .left-rail{display:flex;flex-direction:column}
+body[data-pios-view="command"] .world-stage{width:100%;order:0}
+body[data-pios-view="command"] .left-rail{order:1}}
