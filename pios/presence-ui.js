@@ -54,7 +54,7 @@
   const connected=!!localStorage.getItem('pios_token');
   const chief=connected?(council?.chief_of_staff||{}):{},work=connected?currentWork():null;
   const reviewedAt=window.__piosPresenceAsOf||null;
-  if($('presenceChecked'))$('presenceChecked').textContent=connected?(label(reviewedAt)):'NOT CONNECTED';
+  if($('presenceChecked'))$('presenceChecked').textContent=!connected?'NOT CONNECTED':reviewedAt?label(reviewedAt):strategyMove?'RECORDED STRATEGY LOADED · SPECIALIST REVIEW PENDING':'NO VERIFIED REVIEW';
   const strategyActive=connected&&strategyMove?.candidate_id&&
     !['DO_NOTHING','DO NOTHING','NONE'].includes(String(strategyMove.decision||'').toUpperCase());
   const councilNeed=chief.next_move||null;
@@ -77,7 +77,8 @@
     'Connect your Digital Twin to let PIOS work from your actual goals, resources and responsibilities.';
   if($('presenceNeed'))$('presenceNeed').textContent=priority;
   if($('presenceNeedMeta'))$('presenceNeedMeta').textContent=need?.detail||(!connected?'Your private state stays account-specific.':
-    'No extra decision has been justified by the information checked so far.');
+    council?'No additional action is supported by the current reviewed evidence.':
+    'A missing specialist review is not proof that no personal decision exists.');
   if($('presenceNeedAction'))$('presenceNeedAction').hidden=!connected||!need;
   if($('presencePrepared'))$('presencePrepared').textContent=work?
     (work.content?.headline||'An internal package is ready to review.'):
@@ -94,7 +95,8 @@
   }
   if($('presenceQuiet'))$('presenceQuiet').textContent=!connected?'Connect to personalize the attention filter.':
     council?.mode==='quiet'?'No additional personal intervention identified in this review.':
-    'Lower-priority signals remain outside your command view.';
+    council?'Lower-priority signals are available in World Intelligence.':
+    'Attention filter is not verified yet; use the recorded strategy while the specialist review loads.';
   if($('presenceQuietMeta'))$('presenceQuietMeta').textContent='Recheck on your next intelligence run; this screen does not establish a continuous watch.';
   if($('presenceWorkState'))$('presenceWorkState').textContent=work?'1 VERIFIED INTERNAL PREPARATION · NO CUSTOMER CONTACT':'NO COMPLETED PREPARATION CLAIMED';
  }
