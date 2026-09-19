@@ -19,7 +19,8 @@ function buildCouncil({profile={},goals=[],contracts=[],finance=null,operating=[
  const chosen=(operating||[]).find(o=>candidateId&&o.candidate_id===candidateId)||null;
  const qualified=(operating||[]).filter(o=>["won","active","completed"].includes(o.stage));
  const open=(operating||[]).filter(o=>activePipeline.has(o.stage));
- const urgent=(commitments||[]).filter(c=>c?.status!=="cancelled"&&stamp(c?.due_at||c?.starts_at)!==null&&stamp(c?.due_at||c?.starts_at)>=nowMs&&stamp(c?.due_at||c?.starts_at)<=nowMs+7*day);
+ const urgent=(commitments||[]).filter(c=>!["cancelled","completed","done"].includes(String(c?.status))&&stamp(c?.due_at||c?.starts_at)!==null&&stamp(c?.due_at||c?.starts_at)>=nowMs&&stamp(c?.due_at||c?.starts_at)<=nowMs+7*day);
+ const overdue=(commitments||[]).filter(c=>!["cancelled","completed","done"].includes(String(c?.status))&&stamp(c?.due_at)!==null&&stamp(c?.due_at)<nowMs);
  const liquid=num(finance?.cash);
  const reserves=["taxes_reserved","payroll_reserved","emergency_reserve","operating_reserve"];
  const reserved=reserves.reduce((sum,k)=>sum+(num(finance?.[k])||0),0);
@@ -73,16 +74,32 @@ function buildCouncil({profile={},goals=[],contracts=[],finance=null,operating=[
      lowMargin?"Reprice or decline before committing.":
      missingMargin?"Verify estimated direct costs and margin before commitment.":"Verify current cash, terms and exposure before any consequential spend.",["finance"]));
  }
- if(personal||profile.attention_budget_minutes!==undefined||urgent.length){
+ if(personal||profile.attention_budget_minutes!==undefined||urgent.length||overdue.length){
    const facts=[];
    if(num(profile.attention_budget_minutes)!==null)facts.push(fact("Daily personal attention budget: "+profile.attention_budget_minutes+" minutes.","profile"));
    if(urgent.length)facts.push(fact(urgent.length+" modeled commitment(s) due or starting within seven days.","life_commitments"));
+   if(overdue.length)facts.push(fact(overdue.length+" recorded commitment(s) past their due date; completion status needs confirmation.","life_commitments"));
    const t=num(candidate?.time_required_hours);
    if(t!==null)facts.push(fact("Candidate time requirement as recorded: "+t+" hour(s).","candidate:"+candidateId));
    specialist.push(adviser("time","Time & capacity",t===null&&personal?"verify":"active",
-     urgent.length?"Known commitments must be considered before adding work.":"Personal attention is finite; capacity is not established by an empty calendar.",facts,
+     overdue.length?"A recorded deadline has passed and its resolution is unknown.":urgent.length?"Known commitments must be considered before adding work.":"Personal attention is finite; capacity is not established by an empty calendar.",facts,
      t===null&&personal?"The actual estimator or execution time for this decision is unverified.":null,
      "Limit preliminary work to a bounded information step; confirm availability before scheduling external commitments.",["time"]));
+ }
+ if(["career_income","education_skills"].includes(goal?.domain)){
+   const facts=[fact("Recorded skills/capabilities: "+capabilities.length+".","capabilities")];
+   specialist.push(adviser("career","Career & learning",personal?"verify":"watch",
+     personal?"The opportunity must fit skills, credentials, costs and available time.":"No personally actionable career or learning change is established.",facts,
+     personal?"Qualification, training duration and return on time/capital remain unverified.":null,
+     "Check requirements and measurable goal contribution before training or applying.",["capabilities","goal","time"]));
+ }
+ if(goal?.domain==="real_estate"){
+   const property=(resources||[]).filter(x=>String(x.category||"").toLowerCase().includes("property")||String(x.category||"").toLowerCase().includes("real_estate"));
+   specialist.push(adviser("property","Property & assets",personal?"verify":"watch",
+     property.length?"Recorded property-related resources exist; legal ownership and value still need verification.":"No verified property holding is modeled for this goal.",
+     [fact(property.length+" recorded property-related resource(s).","resources_assets")],
+     personal?"Location, title, carrying costs and permissions require evidence.":null,
+     "Verify the specific property's actual state and costs before any commitment.",["assets","finance"]));
  }
  if(personal&&candidate){
    const caps=(pv?.why_you||[]).filter(x=>x.kind==="recorded_capability").map(x=>x.fact);
@@ -114,15 +131,17 @@ function buildCouncil({profile={},goals=[],contracts=[],finance=null,operating=[
  if(personal&&urgent.length)conflicts.push({between:["business","time"],issue:"An additional opportunity competes with recorded near-term commitments.",resolution:"Verify capacity before accepting any deadline or delivery obligation."});
  let nextMove=null,reason=null,escalation="none",interrupt=false;
  if(!goal){nextMove={kind:"clarify",title:"Define the first personal objective",detail:"What outcome would you like PIOS to help change first?",approval_required:false};reason="No active goal has been observed.";}
+ else if(overdue.length){nextMove={kind:"verify",title:"Check a recorded overdue commitment",detail:"Confirm whether the recorded obligation is still open; if so, determine the immediate deadline consequence and appropriate action.",approval_required:false};reason="Your own commitment record shows a past due date without a completed status. Verify reality before reprioritizing.";interrupt=true;escalation="commitment";}
  else if(!personal){nextMove=null;reason="No verified personal consequence clears the attention threshold. Specialist monitoring remains quiet.";}
  else if(blocking.length){const f=blocking[0];nextMove={kind:"verify",title:"Resolve the "+f.name.toLowerCase()+" gate",detail:f.next_check,approval_required:false};reason=f.challenge;interrupt=true;escalation="guardrail";}
  else if(openMargin){nextMove={kind:"verify",title:"Verify project economics",detail:"Confirm the estimated direct costs and gross margin; do not equate the quoted value with secured profit.",approval_required:false};reason="Business and finance specialists disagree because the margin floor cannot yet be checked.";interrupt=true;}
  else if(pv?.next_move){nextMove={kind:"prepare",title:"Prepare the next personal step",detail:pv.next_move.detail||"Verify the next decision gate.",approval_required:pv.next_move.requires_approval_before_external_contact===true};reason="The next step is bounded by the person's active goal, existing state and available evidence.";interrupt=true;}
  else {nextMove={kind:"verify",title:"Clarify personal relevance",detail:"Obtain the minimum evidence that could change the decision.",approval_required:false};reason="The personal consequence is relevant but insufficiently established.";interrupt=false;}
  const affected=[...new Set((personal?pv?.why_you||[]:[]).map(x=>x.node).filter(Boolean))];
+ if(overdue.length)affected.push("time");
  if(personal&&unknownPersonal)affected.push("bottleneck");
  const adviserStates=specialist.map(a=>({id:a.id,status:a.status}));
- return {version:"executive_council_v1",as_of:now,mode:!goal?"needs_goal":!personal?"quiet":blocking.length?"blocked":"brief",
+ return {version:"executive_council_v1",as_of:now,mode:!goal?"needs_goal":overdue.length?"brief":!personal?"quiet":blocking.length?"blocked":"brief",
    matched_goal_id:goal?.id||null,candidate_id:personal?candidateId:null,
    chief_of_staff:{headline:nextMove?.title||"No personal intervention required",reason,interruption_warranted:interrupt,
      escalation,next_move:nextMove,conflicts,affected_nodes:[...new Set(affected)]},
