@@ -25,7 +25,19 @@
     if(typeof window.piosNavigate==='function')window.piosNavigate('decide');
     document.querySelector('.next-move')?.scrollIntoView({behavior:'smooth',block:'start'});
   };
-  $('presencePreparedAction').onclick=()=>openPrepared();
+  $('presencePreparedAction').onclick=async()=>{
+    if(currentWork()){openPrepared();return}
+    const btn=$('presencePreparedAction');btn.disabled=true;btn.textContent='Preparing internally…';
+    try{
+      const result=await prepareQuote();
+      if(result?.prepared&&currentWork())openPrepared();
+      else if($('presencePreparedMeta'))$('presencePreparedMeta').textContent=
+        result?.reason||'No owned quotation is currently available for safe preparation.';
+    }catch(e){
+      if($('presencePreparedMeta'))$('presencePreparedMeta').textContent=
+        'Internal preparation could not be confirmed. Nothing was sent.';
+    }finally{btn.disabled=false;render()}
+  };
   render();
  }
  function render(){
@@ -52,7 +64,11 @@
   if($('presencePreparedMeta'))$('presencePreparedMeta').textContent=work?
     'Source-linked internal draft and checks created. Nothing was sent; outcome remains unverified.':
     'Planned or AUTO-eligible steps are not treated as completed work.';
-  if($('presencePreparedAction'))$('presencePreparedAction').hidden=!connected||!work;
+  if($('presencePreparedAction')){
+    const relevantBusiness=Array.isArray(council?.specialists)&&council.specialists.some(x=>x.id==='business'&&x.status!=='watch');
+    $('presencePreparedAction').hidden=!connected||(!work&&!relevantBusiness);
+    $('presencePreparedAction').textContent=work?'Inspect prepared work':'Prepare quotation follow-up';
+  }
   if($('presenceQuiet'))$('presenceQuiet').textContent=!connected?'Connect to personalize the attention filter.':
     council?.mode==='quiet'?'No additional personal intervention identified in this review.':
     'Lower-priority signals remain outside your command view.';
