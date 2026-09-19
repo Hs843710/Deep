@@ -33,6 +33,8 @@ jobs:
             echo "Checking $file"
             node --check "$file"
           done
+      - name: Test person-specific intelligence
+        run: node pios/tests/personal-consequence.test.mjs
       - name: Assemble production shell
         run: |
           python - <<'PY'
