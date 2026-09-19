@@ -100,3 +100,21 @@ body[data-pios-view="command"] .world-stage.twin-mode>.globe-scene,
 body[data-pios-view="command"] .world-stage.twin-mode>.life-twin-stage{grid-row:3;grid-column:1}
 body[data-pios-view="command"] .presence-tile{min-height:100px}
 body[data-pios-view="command"] .presence-header h2{font-size:15px}
+
+
+/* Command Center is an intelligence presence, not a profile dashboard. */
+body[data-pios-view="command"] .left-rail{display:none!important}
+body[data-pios-view="command"] .command-grid{grid-template-columns:minmax(0,1fr);max-width:1540px}
+body[data-pios-view="command"] .world-stage{grid-column:1;max-width:1380px;width:100%;margin:0 auto}
+body[data-pios-view="command"] .presence-deck{max-width:1160px;width:calc(100% - 20px);margin:0 auto 10px}
+body[data-pios-view="command"] .globe-scene{height:min(51vh,560px);min-height:430px}
+body[data-pios-view="command"] .life-twin-stage{min-height:590px}
+body[data-pios-view="command"] .workspace-header{max-width:1380px}
+@media(max-width:980px){
+ body[data-pios-view="command"] .command-grid{grid-template-columns:1fr}
+ body[data-pios-view="command"] .left-rail{display:none!important}
+}
+@media(max-width:680px){
+ body[data-pios-view="command"] .presence-deck{width:100%}
+ body[data-pios-view="command"] .globe-scene{height:390px;min-height:360px}
+}
