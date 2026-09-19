@@ -254,6 +254,7 @@
       if($('lifeTwinStatus'))$('lifeTwinStatus').textContent='CONNECT TO LOAD PERSONAL STATE';
       if($('twinIntelligenceTitle'))$('twinIntelligenceTitle').textContent='Your Digital Twin is not connected.';
       if($('twinIntelligenceAction'))$('twinIntelligenceAction').textContent='Sign in to load your own model.';
+      if(typeof window.updatePiosPresence==='function')window.updatePiosPresence({council:null,personalValue:null,asOf:null});
       return;
     }
     if(token!==activeSessionToken){
@@ -275,6 +276,7 @@
     actionGraphData=value(5)||actionGraphData;personalValueData=value(6)||personalValueData;executiveCouncilData=value(7)||executiveCouncilData;
     if(twinData||operatingData)render();
     else if($('lifeTwinStatus'))$('lifeTwinStatus').textContent='PERSONAL STATE CURRENTLY UNAVAILABLE';
+    if(typeof window.updatePiosPresence==='function')window.updatePiosPresence({council:executiveCouncilData?.council||null,personalValue:personalValueData?.personal_value||null,asOf:executiveCouncilData?.generated_at||null});
   }
 
   function installHooks(){
