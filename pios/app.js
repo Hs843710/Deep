@@ -61,7 +61,7 @@ async function signUp(){
   try{const d=await api('/auth/v1/signup',{method:'POST',body:JSON.stringify({email:$('email').value.trim(),password:$('password').value})});if(d.access_token){token=d.access_token;localStorage.setItem('pios_token',token);closeAuth();await bootConnected()}else $('authMessage').textContent='Account created. Confirm your email if required, then sign in.';}
   catch(e){$('authMessage').textContent=e.message}
 }
-function signOut(){localStorage.removeItem('pios_token');token='';location.reload()}
+function signOut(){localStorage.removeItem('pios_token');sessionStorage.removeItem('pios_auto_review_done');token='';location.reload()}
 
 function metricRow(label,value,invert=false){let v=Math.max(0,Math.min(100,num(value)));if(invert)v=100-v;return`<div class="barrow"><label>${esc(label)}</label><div class="bar"><i style="width:${v}%"></i></div><b>${Math.round(v)}</b></div>`}
 function humanGoal(goal){if(!goal)return'Build a stronger future with better decisions.';if(typeof goal==='string')return goal;return humanText(goal.title||goal.description||goal)||'Improve my economic position'}
@@ -160,7 +160,7 @@ async function saveSettings(){
 async function runIntelligence(){
   $('refreshBtn').textContent='Working…';$('refreshBtn').disabled=true;
   try{await api('/functions/v1/universal-orchestrate',{method:'POST',body:'{}'});await Promise.all([loadExperience(),loadModules(),loadModel()]);showToast('PIOS intelligence refreshed.');}
-  catch(e){showToast(`Run failed: ${e.message}`)}finally{$('refreshBtn').textContent='Run Intelligence';$('refreshBtn').disabled=false}
+  catch(e){showToast(`Run failed: ${e.message}`)}finally{$('refreshBtn').textContent='Recheck now';$('refreshBtn').disabled=false}
 }
 
 async function recordDecision(action){
@@ -197,9 +197,29 @@ async function onboardingNext(){
 }
 function onboardingBack(){if(onboardingStep===0)return;onboardingAnswers[ONBOARDING[onboardingStep].key]=$('onboardingInput').value.trim();onboardingStep--;renderOnboarding()}
 
+async function autoReviewConnected(){
+  if(sessionStorage.getItem('pios_auto_review_done')==='1'||!localStorage.getItem('pios_token'))return;
+  sessionStorage.setItem('pios_auto_review_done','1');
+  const pill=$('connectionStatus'),previous=pill?.textContent||'PERSONAL MODEL CONNECTED';
+  if(pill)pill.textContent='REVIEWING PERSONAL STATE';
+  try{
+    await api('/functions/v1/universal-orchestrate',{method:'POST',body:'{}'});
+    await Promise.all([loadExperience(),loadModules(),loadModel()]);
+    if(typeof window.loadLifeTwin==='function')setTimeout(()=>window.loadLifeTwin(),120);
+  }catch(_){
+    // Keep the last verified model visible. Failed refresh is not equivalent to no intelligence.
+  }finally{if(pill&&localStorage.getItem('pios_token'))pill.textContent=previous}
+}
 async function bootConnected(){
-  try{await api('/auth/v1/user');$('connectionStatus').textContent='PERSONAL MODEL CONNECTED';$('connectionStatus').classList.add('good');$('authBtn').textContent='Connected';$('authBtn').onclick=openSettings;$('refreshBtn').classList.remove('hidden');$('settingsBtn').classList.remove('hidden');const model=await loadModel();if(!model.profile){openOnboarding();return}await Promise.all([loadExperience(),loadModules()]);}
-  catch(e){localStorage.removeItem('pios_token');token='';setVisualMode()}
+  try{
+    await api('/auth/v1/user');
+    $('connectionStatus').textContent='PERSONAL MODEL CONNECTED';$('connectionStatus').classList.add('good');
+    $('authBtn').textContent='Connected';$('authBtn').onclick=openSettings;
+    $('refreshBtn').classList.remove('hidden');$('settingsBtn').classList.remove('hidden');
+    const model=await loadModel();if(!model.profile){openOnboarding();return}
+    await Promise.all([loadExperience(),loadModules()]);
+    setTimeout(autoReviewConnected,500);
+  }catch(e){localStorage.removeItem('pios_token');token='';setVisualMode()}
 }
 function setVisualMode(){$('connectionStatus').textContent='VISUAL MODE';$('connectionStatus').classList.remove('good');$('authBtn').textContent='Connect';$('authBtn').onclick=openAuth;$('refreshBtn').classList.add('hidden');$('settingsBtn').classList.add('hidden');$('globeStatus').textContent='Rotating Earth active · connect to load personalized signals';if(globeController)globeController.setSignals([]);if(typeof window.updatePiosPresence==='function')window.updatePiosPresence({council:null,personalValue:null,asOf:null})}
 
