@@ -3,7 +3,7 @@
 -- No outbound messages, irreversible actions, or automatic contact.
 create table if not exists public.personal_monitor_config (
   user_id uuid primary key references auth.users(id) on delete cascade,
-  enabled boolean not null default true,
+  enabled boolean not null default false,
   last_checked_at timestamptz,
   last_error text,
   created_at timestamptz not null default now()
@@ -44,7 +44,7 @@ create policy pios_attention_select on public.personal_attention_events for sele
 drop policy if exists pios_attention_update on public.personal_attention_events;
 create policy pios_attention_update on public.personal_attention_events for update to authenticated using ((select auth.uid())=user_id) with check ((select auth.uid())=user_id);
 insert into public.personal_monitor_config(user_id,enabled)
-select p.user_id,true from public.profiles p where p.onboarding_complete=true
+select p.user_id,false from public.profiles p where p.onboarding_complete=true
 on conflict(user_id) do nothing;
 
 create or replace function public.monitor_personal_attention()
