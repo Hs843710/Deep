@@ -1,0 +1,17 @@
+
+.pios-attention-strip{position:relative;z-index:9;grid-row:3;grid-column:1;display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 9px;padding:10px 14px;border:1px solid rgba(47,231,255,.18);background:rgba(3,24,34,.86);border-radius:12px;pointer-events:auto}
+.pios-attention-strip>div{display:grid;gap:4px;min-width:0}
+.pios-attention-strip span{font-size:8px;color:#73c5d9;letter-spacing:.12em;font-weight:850}
+.pios-attention-strip b{font-size:11px;color:#e1f8ff}
+.pios-attention-strip small{font-size:8px;color:#8ab5c3}
+.pios-attention-strip.pios-attention-active{border-color:rgba(255,202,123,.45);box-shadow:0 0 12px rgba(255,202,123,.06)}
+.pios-attention-strip.pios-attention-active>div span{color:#ffd19a}
+.pios-attention-strip button{flex-shrink:0;cursor:pointer;border-radius:8px;border:1px solid rgba(47,231,255,.36);background:rgba(47,231,255,.04);color:#c6f5ff;padding:8px 10px;font-size:9px}
+.pios-attention-strip button[hidden]{display:none}
+.pios-attention-item{display:grid;gap:5px;border:1px solid rgba(47,231,255,.18);padding:11px;border-radius:10px}
+.pios-attention-item>b{color:#def6fb;font-size:11px}
+.pios-attention-item>p{color:#bbd4dd;font-size:10px;line-height:1.5;margin:0}
+.pios-attention-item>small{color:#82a4b5}
+.pios-attention-item>button{justify-self:start}
+.world-stage.world-mode>.pios-attention-strip{display:none}
+@media(max-width:680px){.pios-attention-strip{flex-direction:column;align-items:stretch}.pios-attention-strip button{align-self:flex-start}}
