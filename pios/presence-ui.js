@@ -31,6 +31,7 @@
     else if(typeof window.piosNavigate==='function')window.piosNavigate('decide');
   };
   $('presenceNeedAction').onclick=()=>{
+    if(window.piosMonitorTopAlert&&typeof window.openPiosMonitor==='function'){window.openPiosMonitor();return;}
     if(typeof window.piosNavigate==='function')window.piosNavigate('decide');
     document.querySelector('.next-move')?.scrollIntoView({behavior:'smooth',block:'start'});
   };
@@ -57,8 +58,8 @@
   if($('presenceChecked'))$('presenceChecked').textContent=!connected?'NOT CONNECTED':reviewedAt?label(reviewedAt):strategyMove?'RECORDED STRATEGY LOADED · SPECIALIST REVIEW PENDING':'NO VERIFIED REVIEW';
   const strategyActive=connected&&strategyMove?.candidate_id&&
     !['DO_NOTHING','DO NOTHING','NONE'].includes(String(strategyMove.decision||'').toUpperCase());
-  const councilNeed=chief.next_move||null;
-  const need=councilNeed||(strategyActive?{title:strategyMove.title||'A recorded decision needs review',
+  const councilNeed=chief.next_move||null,monitoredAlert=connected?window.piosMonitorTopAlert||null:null;
+  const need=monitoredAlert?{title:monitoredAlert.headline,detail:monitoredAlert.detail}:councilNeed||(strategyActive?{title:strategyMove.title||'A recorded decision needs review',
     detail:strategyMove.action||strategyMove.why||'Review the recorded next step.'}:null);
   const priority=!connected?'Connect to load your personal model':need?.title||
     (council?.mode==='quiet'?'No material issue identified in the latest reviewed evidence.':
@@ -79,7 +80,8 @@
   if($('presenceNeedMeta'))$('presenceNeedMeta').textContent=need?.detail||(!connected?'Your private state stays account-specific.':
     council?'No additional action is supported by the current reviewed evidence.':
     'A missing specialist review is not proof that no personal decision exists.');
-  if($('presenceNeedAction'))$('presenceNeedAction').hidden=!connected||!need;
+  if($('presenceNeedAction')){ $('presenceNeedAction').hidden=!connected||!need;
+    $('presenceNeedAction').textContent=monitoredAlert?'Review monitored issues':'Review decision'; }
   if($('presencePrepared'))$('presencePrepared').textContent=work?
     (work.content?.headline||'An internal package is ready to review.'):
     workError?'Prepared work is temporarily unavailable.':
@@ -97,7 +99,9 @@
     council?.mode==='quiet'?'No additional personal intervention identified in this review.':
     council?'Lower-priority signals are available in World Intelligence.':
     'Attention filter is not verified yet; use the recorded strategy while the specialist review loads.';
-  if($('presenceQuietMeta'))$('presenceQuietMeta').textContent='Recheck on your next intelligence run; this screen does not establish a continuous watch.';
+  if($('presenceQuietMeta'))$('presenceQuietMeta').textContent=window.piosMonitorState?.enabled?
+    'Recorded commitments and quotations are checked hourly. Live email and push notifications are not enabled.':
+    'No continuous personal watch is confirmed for this account.';
   if($('presenceWorkState'))$('presenceWorkState').textContent=work?'1 VERIFIED INTERNAL PREPARATION · NO CUSTOMER CONTACT':'NO COMPLETED PREPARATION CLAIMED';
  }
  function mountIfMissing(){
@@ -171,6 +175,7 @@
  };
  window.updatePiosPresence=update;
  window.refreshPiosPresence=loadWork;
+ window.applyPiosMonitorState=render;
  window.preparePiosQuoteInternally=prepareQuote;
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});
  else install();
