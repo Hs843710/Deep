@@ -159,7 +159,7 @@ async function saveSettings(){
 
 async function runIntelligence(){
   $('refreshBtn').textContent='Working…';$('refreshBtn').disabled=true;
-  try{await api('/functions/v1/universal-orchestrate',{method:'POST',body:'{}'});await Promise.all([loadExperience(),loadModules(),loadModel()]);showToast('PIOS intelligence refreshed.');}
+  try{await api('/functions/v1/universal-orchestrate',{method:'POST',body:'{}'});await Promise.all([loadExperience(),loadModules(),loadModel()]);window.refreshPiosAttention?.();showToast('PIOS intelligence refreshed.');}
   catch(e){showToast(`Run failed: ${e.message}`)}finally{$('refreshBtn').textContent='Recheck now';$('refreshBtn').disabled=false}
 }
 
@@ -205,6 +205,7 @@ async function autoReviewConnected(){
   try{
     await api('/functions/v1/universal-orchestrate',{method:'POST',body:'{}'});
     await Promise.all([loadExperience(),loadModules(),loadModel()]);
+    window.refreshPiosAttention?.();
     if(typeof window.loadLifeTwin==='function')setTimeout(()=>window.loadLifeTwin(),120);
   }catch(_){
     // Keep the last verified model visible. Failed refresh is not equivalent to no intelligence.
@@ -218,10 +219,11 @@ async function bootConnected(){
     $('refreshBtn').classList.remove('hidden');$('settingsBtn').classList.remove('hidden');
     const model=await loadModel();if(!model.profile){openOnboarding();return}
     await Promise.all([loadExperience(),loadModules()]);
+    window.refreshPiosAttention?.();
     setTimeout(autoReviewConnected,500);
   }catch(e){localStorage.removeItem('pios_token');token='';setVisualMode()}
 }
-function setVisualMode(){$('connectionStatus').textContent='VISUAL MODE';$('connectionStatus').classList.remove('good');$('authBtn').textContent='Connect';$('authBtn').onclick=openAuth;$('refreshBtn').classList.add('hidden');$('settingsBtn').classList.add('hidden');$('globeStatus').textContent='Rotating Earth active · connect to load personalized signals';if(globeController)globeController.setSignals([]);if(typeof window.updatePiosPresence==='function')window.updatePiosPresence({council:null,personalValue:null,asOf:null})}
+function setVisualMode(){window.clearPiosAttention?.();$('connectionStatus').textContent='VISUAL MODE';$('connectionStatus').classList.remove('good');$('authBtn').textContent='Connect';$('authBtn').onclick=openAuth;$('refreshBtn').classList.add('hidden');$('settingsBtn').classList.add('hidden');$('globeStatus').textContent='Rotating Earth active · connect to load personalized signals';if(globeController)globeController.setSignals([]);if(typeof window.updatePiosPresence==='function')window.updatePiosPresence({council:null,personalValue:null,asOf:null})}
 
 function initFallbackGlobe(){
   const svg=$('globe');if(!svg)return{setSignals(){}};
