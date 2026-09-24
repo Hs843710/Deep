@@ -99,11 +99,11 @@
      ]);
      if(seq!==request||current()!==token)return;
      if(!Array.isArray(settings)||!settings.length){
-       // Newly onboarded accounts receive their own default configuration; existing pause settings are never overwritten.
+       // Newly onboarded accounts receive a paused default; every user enables monitoring for their own account.
        const user=await api('/auth/v1/user');
        if(!user?.id||current()!==token)return;
        await api('/rest/v1/personal_monitor_config?on_conflict=user_id',
-         {method:'POST',headers:{Prefer:'resolution=ignore-duplicates,return=minimal'},body:JSON.stringify([{user_id:user.id,enabled:true}])});
+         {method:'POST',headers:{Prefer:'resolution=ignore-duplicates,return=minimal'},body:JSON.stringify([{user_id:user.id,enabled:false}])});
        settings=await api('/rest/v1/personal_monitor_config?select=user_id,enabled,last_checked_at,last_error&limit=1');
      }
      if(seq!==request||current()!==token)return;
