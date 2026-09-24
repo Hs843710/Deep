@@ -15,3 +15,8 @@
 .pios-attention-item>button{justify-self:start}
 .world-stage.world-mode>.pios-attention-strip{display:none}
 @media(max-width:680px){.pios-attention-strip{flex-direction:column;align-items:stretch}.pios-attention-strip button{align-self:flex-start}}
+
+/* Keep the monitor in its own grid row; do not overlap the executive presence. */
+.world-stage.twin-mode>.pios-attention-strip{grid-row:3;grid-column:1}
+.world-stage.twin-mode>.presence-deck{grid-row:4;grid-column:1}
+body[data-pios-view="twin"] .pios-attention-strip,body[data-pios-view="decide"] .pios-attention-strip,body[data-pios-view="act"] .pios-attention-strip,body[data-pios-view="system"] .pios-attention-strip{display:none}
