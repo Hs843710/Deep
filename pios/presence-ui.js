@@ -41,13 +41,13 @@
     if(currentWork()){openPrepared();return}
     const btn=$('presencePreparedAction');btn.disabled=true;btn.textContent='Preparing internally…';
     try{
-      const result=await prepareQuote();
+      const result=await prepareSelectedWork();
       if(result?.prepared&&currentWork())openPrepared();
       else if($('presencePreparedMeta'))$('presencePreparedMeta').textContent=
-        result?.reason||'No owned quotation is currently available for safe preparation.';
+        result?.reason||'No bounded internal worker matched the selected move.';
     }catch(e){
       if($('presencePreparedMeta'))$('presencePreparedMeta').textContent=
-        'Internal preparation could not be confirmed. Nothing was sent.';
+        'Internal preparation could not be confirmed. No external action was performed.';
     }finally{btn.disabled=false;render()}
   };
   render();
@@ -89,13 +89,12 @@
     workError?'Prepared work is temporarily unavailable.':
     'No completed internal work recorded for the current state.';
   if($('presencePreparedMeta'))$('presencePreparedMeta').textContent=work?
-    'Source-linked internal draft and checks created. Nothing was sent; outcome remains unverified.':
+    'Source-linked internal work completed. No bid, purchase, message or commitment was made.':
     workError?'The preparation service could not be verified; nothing has been marked completed.':'Planned or AUTO-eligible steps are not treated as completed work.';
   if($('presencePreparedAction')){
-    const relevantBusiness=Array.isArray(council?.specialists)&&council.specialists.some(x=>x.id==='business'&&x.status!=='watch');
-    const selectedQuote=!!strategyMove?.candidate_id&&/follow.up|quotation|quote|estimate/i.test(String(strategyMove.title||'')+' '+String(strategyMove.action||''));
-    $('presencePreparedAction').hidden=!connected||(!work&&!relevantBusiness&&!selectedQuote);
-    $('presencePreparedAction').textContent=work?'Inspect prepared work':'Prepare quotation follow-up';
+    const hasSelectedMove=!!strategyMove?.candidate_id;
+    $('presencePreparedAction').hidden=!connected||(!work&&!hasSelectedMove);
+    $('presencePreparedAction').textContent=work?'Inspect prepared work':'Prepare internal work';
   }
   if($('presenceQuiet'))$('presenceQuiet').textContent=!connected?'Connect to personalize the attention filter.':
     council?.mode==='quiet'?'No additional personal intervention identified in this review.':
@@ -160,9 +159,14 @@
     }catch(_){ /* Failure remains visibly unprepared; no external action is attempted. */ }
   }
  }
- async function prepareQuote(){
+ async function prepareSelectedWork(){
   if(typeof window.api!=='function'||!localStorage.getItem('pios_token'))return null;
-  const result=await window.api('/functions/v1/executive-workbench',{method:'POST',body:JSON.stringify({operation:'prepare_quote',candidate_id:strategyMove?.candidate_id||null})});
+  const candidateId=strategyMove?.candidate_id||null;
+  if(!candidateId)return {prepared:false,reason:'No selected candidate is available for internal preparation.'};
+  let result=await window.api('/functions/v1/executive-workbench',{method:'POST',
+    body:JSON.stringify({operation:'prepare_quote',candidate_id:candidateId})});
+  if(!result?.prepared)result=await window.api('/functions/v1/executive-workbench',{method:'POST',
+    body:JSON.stringify({operation:'prepare_candidate_qualification',candidate_id:candidateId})});
   await loadWork();return result;
  }
  function update({council:nextCouncil,personalValue,asOf}={}){
@@ -185,7 +189,7 @@
  window.updatePiosPresence=update;
  window.refreshPiosPresence=loadWork;
  window.applyPiosMonitorState=render;
- window.preparePiosQuoteInternally=prepareQuote;
+ window.preparePiosSelectedWork=prepareSelectedWork;
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});
  else install();
 })();
