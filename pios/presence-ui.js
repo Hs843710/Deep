@@ -3,13 +3,15 @@
  'use strict';
  const $=id=>document.getElementById(id);
  const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- let council=null,personal=null,strategyMove=null,works=[],workError=null,loadingSeq=0,loadedToken=null,autoPreparedForToken=null;
+ let council=null,personal=null,strategyMove=null,works=[],workError=null,loadingSeq=0,loadedToken=null,autoPreparedKey=null;
  const label=(x)=>x?'REVIEWED '+new Intl.DateTimeFormat('en-CA',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(x)):'NO VERIFIED REVIEW';
- const currentWork=()=>works.find(w=>w?.status==='prepared'&&w?.is_current&&
-  (!strategyMove?.candidate_id||w.candidate_id===strategyMove.candidate_id)&&
-  w?.content?.action_status?.preparation==='completed'&&
-  w?.content?.action_status?.external_contact==='not_performed'&&
-  w?.content?.draft?.external_message_sent===false)||null;
+ const currentWork=()=>works.find(w=>{
+   const c=w?.content||{},a=c.action_status||{},draft=c.draft||null;
+   return w?.status==='prepared'&&w?.is_current&&
+     (!strategyMove?.candidate_id||w.candidate_id===strategyMove.candidate_id)&&
+     a.preparation==='completed'&&a.external_contact==='not_performed'&&
+     (draft?draft.external_message_sent===false:a.bid_submitted===false);
+ })||null;
  function mount(){
   const stage=document.querySelector('.world-stage');
   if(!stage||$('presenceDeck'))return;
@@ -102,7 +104,7 @@
   if($('presenceQuietMeta'))$('presenceQuietMeta').textContent=window.piosMonitorState?.enabled?
     'Recorded commitments and quotations are checked hourly. Live email and push notifications are not enabled.':
     'No continuous personal watch is confirmed for this account.';
-  if($('presenceWorkState'))$('presenceWorkState').textContent=work?'1 VERIFIED INTERNAL PREPARATION · NO CUSTOMER CONTACT':'NO COMPLETED PREPARATION CLAIMED';
+  if($('presenceWorkState'))$('presenceWorkState').textContent=work?'1 VERIFIED INTERNAL PREPARATION · NO EXTERNAL ACTION':'NO COMPLETED PREPARATION CLAIMED';
  }
  function mountIfMissing(){
   if(!$('presenceDeck')&&document.querySelector('.world-stage'))mount();
@@ -115,18 +117,25 @@
   line('h3',content.headline||'Prepared internal work');
   line('p',content.summary||'This package was prepared from a recorded operating opportunity.','muted');
   line('p','Source checked: '+new Date(w.source_updated_at).toLocaleString()+' · Draft created: '+new Date(w.created_at).toLocaleString(),'presence-source');
-  line('h4','Customer follow-up draft');
-  const subject=document.createElement('input');subject.readOnly=true;subject.value=draft.subject||'';subject.setAttribute('aria-label','Draft subject');box.appendChild(subject);
-  const body=document.createElement('textarea');body.readOnly=true;body.rows=7;body.value=draft.body||'';body.setAttribute('aria-label','Draft body');box.appendChild(body);
-  const copy=document.createElement('button');copy.type='button';copy.className='btn';copy.textContent='Copy draft for your review';copy.onclick=async()=>{
-    try{await navigator.clipboard.writeText((draft.subject||'')+'\n\n'+(draft.body||''));copy.textContent='Copied · no message sent';}
-    catch(_){body.focus();body.select();copy.textContent='Select and copy the draft manually';}
-  };box.appendChild(copy);
-  line('h4','Internal decision checks');
-  for(const check of content.internal_checks||[])line('p',(check.label||'Check')+': '+(check.detail||''),'presence-check');
+  if(content.kind==='quote_followup'){
+    line('h4','Customer follow-up draft');
+    const subject=document.createElement('input');subject.readOnly=true;subject.value=draft.subject||'';subject.setAttribute('aria-label','Draft subject');box.appendChild(subject);
+    const body=document.createElement('textarea');body.readOnly=true;body.rows=7;body.value=draft.body||'';body.setAttribute('aria-label','Draft body');box.appendChild(body);
+    const copy=document.createElement('button');copy.type='button';copy.className='btn';copy.textContent='Copy draft for your review';copy.onclick=async()=>{
+      try{await navigator.clipboard.writeText((draft.subject||'')+'\n\n'+(draft.body||''));copy.textContent='Copied · no message sent';}
+      catch(_){body.focus();body.select();copy.textContent='Select and copy the draft manually';}
+    };box.appendChild(copy);
+    line('h4','Internal decision checks');
+    for(const check of content.internal_checks||[])line('p',(check.label||'Check')+': '+(check.detail||''),'presence-check');
+  }else if(content.kind==='candidate_qualification'){
+    line('h4','Qualification checks');
+    for(const check of content.qualification_checks||[])line('p',(check.label||'Check')+' ['+(check.state||'unknown')+']: '+(check.detail||''),'presence-check');
+    if(content.dependencies?.length){line('h4','Scope dependencies');for(const item of content.dependencies)line('p','• '+item,'presence-unknown');}
+    if(content.recommendation?.detail){line('h4','Prepared conclusion');line('p',content.recommendation.detail,'presence-check');}
+  }
   line('h4','Still unknown');
   for(const unknown of content.unknowns||[])line('p','• '+unknown,'presence-unknown');
-  line('p','Approval required before any external communication, bid, purchase, contract or commitment. This internal draft is not a completed customer follow-up.','presence-warning');
+  line('p','Approval required before any external communication, bid, purchase, contract or commitment. Prepared work is internal evidence, not proof that an external action occurred.','presence-warning');
   drawer.classList.remove('hidden');
  }
  async function loadWork(){
@@ -138,17 +147,17 @@
     loadedToken=token;workError=null;works=Array.isArray(result?.works)?result.works:[];
   }catch(_){if(seq!==loadingSeq)return;workError='read_unavailable';works=[];}
   render();
-  const relevant=Array.isArray(council?.specialists)&&council.specialists.some(x=>x.id==='business'&&x.status!=='watch');
-  const selectedQuote=!!strategyMove?.candidate_id&&/follow.up|quotation|quote|estimate/i.test(String(strategyMove.title||'')+' '+String(strategyMove.action||''));
-  // An owned quote may be prepared internally once per connected session.
-  // The operation is idempotent for an unchanged source and never sends anything.
-  if((relevant||selectedQuote)&&strategyMove?.candidate_id&&!currentWork()&&autoPreparedForToken!==token){
-    autoPreparedForToken=token;
+  const candidateId=strategyMove?.candidate_id||null,key=candidateId?token+':'+candidateId:null;
+  // Try only bounded internal workers. Each endpoint verifies whether the selected candidate is eligible for that worker.
+  if(candidateId&&!currentWork()&&autoPreparedKey!==key){
+    autoPreparedKey=key;
     try{
-      const prep=await window.api('/functions/v1/executive-workbench',{method:'POST',
-        body:JSON.stringify({operation:'prepare_quote',candidate_id:strategyMove.candidate_id})});
+      let prep=await window.api('/functions/v1/executive-workbench',{method:'POST',
+        body:JSON.stringify({operation:'prepare_quote',candidate_id:candidateId})});
+      if(!prep?.prepared)prep=await window.api('/functions/v1/executive-workbench',{method:'POST',
+        body:JSON.stringify({operation:'prepare_candidate_qualification',candidate_id:candidateId})});
       if(prep?.prepared&&localStorage.getItem('pios_token')===token)await loadWork();
-    }catch(_){ /* An actual preparation failure must remain visible as not prepared. */ }
+    }catch(_){ /* Failure remains visibly unprepared; no external action is attempted. */ }
   }
  }
  async function prepareQuote(){
@@ -158,8 +167,8 @@
  }
  function update({council:nextCouncil,personalValue,asOf}={}){
   const token=localStorage.getItem('pios_token');
-  if(!token){council=null;personal=null;strategyMove=null;works=[];workError=null;loadedToken=null;autoPreparedForToken=null;window.__piosPresenceAsOf=null;if($('preparedDrawer'))$('preparedDrawer').classList.add('hidden');render();return}
-  if(loadedToken&&loadedToken!==token){works=[];workError=null;loadedToken=null;autoPreparedForToken=null}
+  if(!token){council=null;personal=null;strategyMove=null;works=[];workError=null;loadedToken=null;autoPreparedKey=null;window.__piosPresenceAsOf=null;if($('preparedDrawer'))$('preparedDrawer').classList.add('hidden');render();return}
+  if(loadedToken&&loadedToken!==token){works=[];workError=null;loadedToken=null;autoPreparedKey=null}
   council=nextCouncil||null;personal=personalValue||null;
   window.__piosPresenceAsOf=asOf||new Date().toISOString();
   render();loadWork();
