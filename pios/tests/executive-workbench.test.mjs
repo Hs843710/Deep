@@ -45,6 +45,7 @@ assert.equal(pack.economics.profitability_verified,false);
 assert.ok(pack.dependencies.some(x=>x.includes("Hazardous-material")));
 assert.ok(pack.dependencies.some(x=>x.includes("Electrical/garage-door")));
 assert.ok(pack.qualification_checks.some(x=>x.label==="Source record"&&x.state==="linked"));
+assert.ok(pack.qualification_checks.some(x=>x.label==="Capability fit"&&x.state==="partial_match"),"siding/cladding must match Siding and cladding");
 assert.ok(pack.qualification_checks.some(x=>x.label==="Profitability"&&x.state==="needs_pricing"));
 const capitalBlocked=prepareCandidate({...candidate,capital_required_high:50000},signal,[{name:"siding/cladding"}],
  {cash:40000,taxes_reserved:0,payroll_reserved:0,emergency_reserve:20000,operating_reserve:5000},
