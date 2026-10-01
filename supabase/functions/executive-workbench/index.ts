@@ -53,6 +53,8 @@ Deno.serve(async request=>{
     else candidates=await db("opportunity_candidates?user_id=eq."+uid+"&status=in.(new,investigate,watch,approved,executing)&module_code=in.(construction,procurement)&select=*&order=updated_at.desc&limit=1",jwt);
     const c=candidates?.[0];
     if(!c)return J({ok:true,prepared:false,reason:"No current construction/procurement candidate is available for internal qualification."});
+    if(!["construction","procurement"].includes(String(c.module_code||""))||c.opportunity_type==="existing_pipeline")
+      return J({ok:true,prepared:false,reason:"The selected candidate is not an external construction/procurement opportunity."});
     const existing=await db("prepared_work?user_id=eq."+uid+"&candidate_id=eq."+c.id+"&operating_id=is.null&work_type=eq.candidate_qualification&select=*&order=created_at.desc&limit=5",jwt);
     const exact=(existing||[]).find((x:any)=>new Date(x.source_updated_at).getTime()===new Date(c.updated_at).getTime());
     if(exact)return J({ok:true,prepared:true,already_prepared:true,work:exact,external_action_performed:false});
