@@ -29,7 +29,7 @@ function deliberation({council=null,candidate=null,personalValue=null,preparedWo
     (blockedCheck?.detail||blockedSpecialist?.challenge||chief.reason||null):
     (openCheck?.detail||unknowns[0]||null);
   let policy="PROCEED_REVERSIBLY";
-  if(council?.mode==="quiet"&&!candidate)policy="QUIET";
+  if(council?.mode==="quiet")policy="QUIET";
   else if(hard)policy="BLOCK";
   else if(missingFact)policy="LEARN_FIRST";
   else if(chief?.next_move?.approval_required)policy="PREPARE_FOR_APPROVAL";
