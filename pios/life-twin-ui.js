@@ -200,18 +200,18 @@
   }
 
   function render(){
-    ensureShell();const t=twinData?.digital_twin||{},state=t.current_state||{},goal=t.primary_goal||{},p=goal.progress||{},op=operatingData||t.operating_memory||{},s=op.summary||{},gt=op.goal_tracking||{},capital=state.capital||{},counts=t.counts||{},profile=state.profile||{},commitments=state.commitments||{},sources=state.sources||[];
+    ensureShell();const t=twinData?.digital_twin||{},state=t.current_state||{},goal=t.primary_goal||{},p=goal.progress||{},op=operatingData||t.operating_memory||{},s=op.summary||{},gt=op.goal_tracking||{},capital=state.capital||{},counts=t.counts||{},profile=state.profile||{},commitments=state.commitments||{},sources=state.sources||[],graph=t.graph||state.life_graph||{},graphTypes=graph.by_type||{};
     const projectCurrent=gt.projects?.current??p.current??0,projectTarget=gt.projects?.target??p.target??'—',goalPct=p.progress_pct??gt.projects?.progress_pct??0,rr=reasoningData||{},robust=rr.metadata?.robustness?.score,criticalUnknowns=(rr.uncertainties||[]).filter(x=>x?.critical).length;
     setNode('lifeGoal',`${projectCurrent}/${projectTarget}`,`${Number(goalPct||0).toFixed(0)}% complete`,Number(goalPct||0)>0?'good':'known');
-    setNode('lifeBusiness',`${s.open||0} open`,`${s.quoted||0} quoted · ${s.won||0} won`,(operatingData?.records||[]).length?'known':'unknown');
-    setNode('lifeProjects',`${s.won||0} won`,`${s.open||0} active pipeline`,s.won>0?'good':s.open>0?'known':'unknown');
+    setNode('lifeBusiness',`${s.open||0} open`,`${graphTypes.prepared_work||0} prepared · ${s.quoted||0} quoted`,(operatingData?.records||[]).length?'known':'unknown');
+    setNode('lifeProjects',`${graphTypes.operating_record??counts.operating_records??0} tracked`,`${s.open||0} open · ${s.won||0} won`,s.won>0?'good':s.open>0?'known':'unknown');
     setNode('lifeFinance',money(capital.deployable,capital.currency||'CAD'),`${money(capital.protected_amount,capital.currency||'CAD')} protected`,capital.deployable!=null?'good':'unknown');
     setNode('lifeTime',profile.attention_budget_minutes!=null?`${profile.attention_budget_minutes}m/day`:'—',commitments.next_7_days? `${commitments.next_7_days} commitment${commitments.next_7_days===1?'':'s'} next 7d` : 'no connected-calendar commitments next 7d',profile.attention_budget_minutes!=null?'known':'unknown');
     setNode('lifeCapabilities',String(counts.capabilities??0),'recorded capabilities',(counts.capabilities||0)>0?'good':'unknown');
-    setNode('lifeAssets',String(counts.resources??0),`${counts.connected_sources??sources.length} connected source${(counts.connected_sources??sources.length)===1?'':'s'}`,(counts.resources||0)>0?'known':'unknown');
+    setNode('lifeAssets',String(graphTypes.resource??counts.resources??0),`${graphTypes.source_connection??counts.connected_sources??sources.length} evidence source${(graphTypes.source_connection??counts.connected_sources??sources.length)===1?'':'s'}`,(graphTypes.resource??counts.resources??0)>0?'known':'unknown');
     const b=op.bottleneck||t.bottleneck||{};setNode('lifeBottleneck',b.type==='none'||!b.type?'UNKNOWN':String(b.title||b.type).replace(/Bottleneck not identified yet/i,'UNVERIFIED').slice(0,20),b.type==='none'?'needs operating evidence':String(b.type||'constraint').replaceAll('_',' '),b.type==='none'||!b.type?'unknown':'warn');
-    $('lifeCoreAnchor').textContent=profile.home_region||'PERSONAL MODEL';$('lifeCoreState').textContent=robust!=null?`ROBUST ${Number(robust).toFixed(0)} · ${criticalUnknowns} critical unknown${criticalUnknowns===1?'':'s'}`:`${Number(goalPct||0).toFixed(0)}% goal progress`;
-    $('lifeTwinStatus').textContent=t.model_completeness_pct!=null?`CORE MODEL ${t.model_completeness_pct}%`:'LIVE PERSONAL STATE';$('lifeTwinUpdated').textContent=`updated ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
+    $('lifeCoreAnchor').textContent=profile.home_region||'PERSONAL MODEL';$('lifeCoreState').textContent=robust!=null?`ROBUST ${Number(robust).toFixed(0)} · ${criticalUnknowns} critical unknown${criticalUnknowns===1?'':'s'}`:`${Number(goalPct||0).toFixed(0)}% goal progress · ${commitments.active_count||0} active commitments`;
+    $('lifeTwinStatus').textContent='LIVE PERSONAL MODEL';$('lifeTwinUpdated').textContent=`updated ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
     if($('worldModeCount'))$('worldModeCount').textContent=String(worldCount||0);
     renderIntelligence();renderCouncilStrip();renderFutureSimulations();if(activeScenarioId)applyScenarioProjection(activeScenarioId);
   }
