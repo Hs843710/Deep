@@ -1,6 +1,7 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {buildCouncil} from "./council-core.js";
+import {deliberation} from "./deliberation-core.js";
 const U=Deno.env.get("SUPABASE_URL")!,A=Deno.env.get("SUPABASE_ANON_KEY")!;
 const C={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization,x-client-info,apikey,content-type","Access-Control-Allow-Methods":"GET,POST,OPTIONS"};
 const J=(d:any,s=200)=>new Response(JSON.stringify(d),{status:s,headers:{...C,"Content-Type":"application/json","Cache-Control":"no-store"}});
@@ -41,10 +42,25 @@ Deno.serve(async(req:Request)=>{
    const r=await fetchJson(U+"/functions/v1/personal-consequence",jwt,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({candidate_id:candidate.id})});
    if(r?.ok)personalValue=r.personal_value||null;
   }
+  const [preparedWork,learningContext]=await Promise.all([
+    candidate?query("prepared_work","user_id=eq."+uid+"&candidate_id=eq."+candidate.id+"&status=eq.prepared&select=*&order=created_at.desc&limit=8",jwt):Promise.resolve([]),
+    fetchJson(U+"/functions/v1/learning-context",jwt,{method:"GET"}).catch(()=>null)
+  ]);
   const now=new Date().toISOString();
   const council=buildCouncil({profile:profiles?.[0]||{},goals:goals||[],contracts:contracts||[],finance:finance?.[0]||null,
    operating:operating||[],commitments:commits||[],capabilities:capabilities||[],resources:resources||[],
    sources:sources||[],candidate,personalValue,now});
+  const thought=deliberation({council,candidate,personalValue,preparedWork:preparedWork||[],learningContext});
+  council.version="executive_council_v3_adversarial";
+  council.deliberation=thought;
+  council.specialists=[...(council.specialists||[]),
+    {id:"red_team",name:"Red Team & falsification",status:thought.policy==="BLOCK"?"blocked":thought.highest_value_missing_fact?"verify":"active",
+      headline:thought.strongest_counterargument,facts:(thought.evidence_for_current_view||[]).slice(0,2).map((x:any)=>({text:x.claim,source:x.source})),
+      challenge:thought.binding_constraint||thought.highest_value_missing_fact||null,next_check:thought.falsification_test,affects:["bottleneck"]},
+    {id:"calibration",name:"Learning & calibration",status:Number(learningContext?.summary?.calibration_ready||0)>0?"active":"watch",
+      headline:thought.calibration_note,facts:[],challenge:null,next_check:"Compare future executed decisions with actual outcomes before changing confidence.",affects:["goal"]}
+  ];
+  council.adviser_states=(council.specialists||[]).map((x:any)=>({id:x.id,status:x.status}));
   return J({ok:true,generated_at:now,council,
    limitations:{specialists:"Evidence-based specialist analyses, not independent licensed professionals or autonomous agents.",
      execution:"No emails, financial transactions, external submissions or other consequential actions are performed.",
