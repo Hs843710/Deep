@@ -47,6 +47,8 @@ jobs:
         run: node pios/tests/learning-context.test.mjs
       - name: Test canonical life graph
         run: node pios/tests/personal-graph.test.mjs
+      - name: Test adversarial Executive Council
+        run: node pios/tests/executive-deliberation.test.mjs
       - name: Assemble production shell
         run: |
           python - <<'PY'
