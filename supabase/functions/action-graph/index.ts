@@ -75,18 +75,21 @@ Deno.serve(async(req:Request)=>{
   try{
     const body=req.method==="POST"?await req.json().catch(()=>({})):{},uid=u.id;
     const [reasonRows,snapRows,simRows]=await Promise.all([
-      R("reasoning_runs?user_id=eq."+uid+"&select=*&order=generated_at.desc&limit=1",jwt),
+      R("reasoning_runs?user_id=eq."+uid+"&select=*&order=generated_at.desc&limit=20",jwt),
       R("strategy_snapshots?user_id=eq."+uid+"&select=*&order=generated_at.desc&limit=1",jwt),
-      R("future_simulation_runs?user_id=eq."+uid+"&select=*&order=generated_at.desc&limit=1",jwt)
+      R("future_simulation_runs?user_id=eq."+uid+"&select=*&order=generated_at.desc&limit=20",jwt)
     ]);
-    const reason=reasonRows?.[0]||null,snap=snapRows?.[0]||null,sim=simRows?.[0]||null;
+    const snap=snapRows?.[0]||null;
+    const requestedCid=String(body?.candidate_id||snap?.next_best_move?.candidate_id||"");
+    const reason=requestedCid?(reasonRows||[]).find((x:any)=>String(x?.recommendation?.candidate_id||"")===requestedCid)||null:null;
+    const sim=requestedCid?(simRows||[]).find((x:any)=>String(x?.candidate_id||"")===requestedCid)||null:null;
     const rec=(reason?.recommendation&&reason.recommendation.candidate_id)?reason.recommendation:(snap?.next_best_move||{});
-    const cid=String(body?.candidate_id||rec?.candidate_id||"");
+    const cid=String(requestedCid||rec?.candidate_id||"");
     if(!cid)return J({ok:true,plan:null,note:"No material decision currently needs an action graph."});
     const c=(await R("opportunity_candidates?user_id=eq."+uid+"&id=eq."+cid+"&select=*&limit=1",jwt))?.[0];
     if(!c)return J({error:"Candidate not found"},404);
     const p=planFor(c,rec,sim,reason);
-    const row={user_id:uid,candidate_id:c.id,reasoning_run_id:reason?.id||null,simulation_run_id:sim?.id||null,plan_version:"action_graph_v1_guarded_autonomy",status:"ready",objective:p.objective,pathway:p.pathway,steps:p.steps,current_step:1,approval_state:p.approval_state,metadata:{candidate_title:c.title,module_code:c.module_code,opportunity_type:c.opportunity_type,guardrail:"Autonomous work is limited to observation, analysis, internal preparation and measurement. Consequential external action requires explicit approval."}};
+    const row={user_id:uid,candidate_id:c.id,reasoning_run_id:reason?.id||null,simulation_run_id:sim?.id||null,plan_version:"action_graph_v2_candidate_trace",status:"ready",objective:p.objective,pathway:p.pathway,steps:p.steps,current_step:1,approval_state:p.approval_state,metadata:{candidate_title:c.title,module_code:c.module_code,opportunity_type:c.opportunity_type,guardrail:"Autonomous work is limited to observation, analysis, internal preparation and measurement. Consequential external action requires explicit approval."}};
     let planId=null;
     if(body?.persist===true){
       const saved=await R("action_plans",jwt,{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify([row])});
