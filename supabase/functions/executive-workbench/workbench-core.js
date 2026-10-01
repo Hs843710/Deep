@@ -51,8 +51,13 @@ function prepareCandidateQualification(candidate,signal=null,capabilities=[],fin
  const title=trim(candidate.title||"opportunity",220);
  const matches=Array.isArray(candidate?.scope_match?.matches)?candidate.scope_match.matches.map(x=>trim(x,120)).filter(Boolean):[];
  const capNames=(capabilities||[]).map(x=>trim(x?.name,120)).filter(Boolean);
- const normalizedCaps=capNames.map(x=>x.toLowerCase());
- const matchedCaps=matches.filter(m=>normalizedCaps.some(c=>c.includes(m.toLowerCase())||m.toLowerCase().includes(c))).slice(0,8);
+ const terms=x=>String(x||"").toLowerCase().replace(/[^a-z0-9]+/g," ").split(/\s+/).filter(t=>t&&!["and","or","the","of","for"].includes(t));
+ const capabilityMatch=(scope,cap)=>{
+   const a=terms(scope),b=terms(cap);if(!a.length||!b.length)return false;
+   const overlap=a.filter(t=>b.includes(t));
+   return overlap.length>=Math.min(2,a.length)||overlap.length>=Math.min(2,b.length);
+ };
+ const matchedCaps=matches.filter(m=>capNames.some(c=>capabilityMatch(m,c))).slice(0,8);
  const raw=signal?.raw_payload||{},verified=Array.isArray(signal?.verified_facts)?signal.verified_facts:[];
  const sourceLinked=!!signal?.source_url;
  const deadline=signal?.deadline_at||candidate.window_end||null;
