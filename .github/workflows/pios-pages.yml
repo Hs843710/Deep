@@ -45,6 +45,8 @@ jobs:
         run: node pios/tests/presence.test.mjs
       - name: Test conservative learning context
         run: node pios/tests/learning-context.test.mjs
+      - name: Test canonical life graph
+        run: node pios/tests/personal-graph.test.mjs
       - name: Assemble production shell
         run: |
           python - <<'PY'
