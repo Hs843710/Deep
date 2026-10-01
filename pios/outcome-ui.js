@@ -32,6 +32,7 @@
         <div class="outcome-actions"><button id="saveOutcomeBtn" class="btn primary" type="button">Complete & Learn</button><button id="cancelOutcomeBtn" class="btn ghost" type="button">Cancel</button></div>
       </div>
       <div id="learningResult" class="learning-result hidden"></div>
+      <div id="learningEvidence" class="recent-learning"></div>
       <div id="recentLearning" class="recent-learning"></div>`;
     move.appendChild(box);
     $('cancelOutcomeBtn').onclick=()=>$('outcomeForm').classList.add('hidden');
@@ -139,9 +140,20 @@
   async function loadRecentLearning(){
     if(!localStorage.getItem('pios_token')||typeof window.api!=='function')return;
     try{
-      const d=await window.api('/functions/v1/action-outcome');recentLearning=d?.recent_learning?.[0]||null;
+      const [d,ctx]=await Promise.all([
+        window.api('/functions/v1/action-outcome'),
+        window.api('/functions/v1/learning-context')
+      ]);
+      recentLearning=d?.recent_learning?.[0]||null;
+      const evidence=$('learningEvidence');
+      if(evidence){
+        const summary=ctx?.summary||{},state=ctx?.state||'unavailable';
+        const latest=Array.isArray(ctx?.observations)?ctx.observations[0]:null;
+        evidence.innerHTML=`<span>OBSERVED EVIDENCE</span><div><b>${Number(summary.observations||0)} factual operating snapshot(s)</b> · ${Number(summary.linked_observations||0)} linked to decisions · ${Number(summary.calibration_ready||0)} ready for calibration</div>`+
+          `<small>${esc(latest?.reason||state==='no_outcome_evidence'?'No outcome evidence has been observed yet.':'Pipeline movement is stored as evidence but does not change model confidence until it can be traced to an executed decision and a sufficiently complete result.')}</small>`;
+      }
       const box=$('recentLearning');if(!box)return;
-      if(!recentLearning){box.innerHTML='<span>LEARNING MEMORY</span><div>No completed real-world outcome yet. PIOS currently learns mostly from decisions; real outcomes will carry more weight.</div>';return;}
+      if(!recentLearning){box.innerHTML='<span>LEARNING MEMORY</span><div>No classified real-world outcome yet. PIOS is retaining observations but is not treating them as proof that a recommendation succeeded or failed.</div>';return;}
       const r=recentLearning,o=r.outcome,c=r.candidate,comp=r.comparison;
       box.innerHTML=`<span>RECENT LEARNING</span><div><b>${esc(c?.title||'Completed action')}</b> · ${esc(label(o?.status||'unknown'))}${o?.monetary_impact!=null?` · ${esc(money(o.monetary_impact,c?.currency||'CAD'))}`:''}${o?.time_impact_hours!=null?` · ${Number(o.time_impact_hours)}h`:''}${comp?.time_variance_pct!=null?` · ${comp.time_variance_pct>0?'+':''}${comp.time_variance_pct}% time vs estimate`:''}</div>`;
     }catch(_){ }
