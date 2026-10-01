@@ -25,7 +25,10 @@ assert.ok(presence.includes("Prepare quotation follow-up"),"a relevant person ca
 assert.ok(presence.includes("result?.prepared&&currentWork()"),"the interface cannot claim completed work until it reloads the stored artifact");
 assert.ok(presence.includes("autoPreparedForToken!==token"),"safe preparation should run at most once per connected session");
 assert.ok(presence.includes("prep?.prepared&&localStorage.getItem('pios_token')===token"),"auto preparation may display results only for the same session");
-assert.ok(presence.includes("does not establish a continuous watch"),"no unconfigured always-on monitoring claims");
+const monitor=readFileSync("pios/personal-monitor-ui.js","utf8");
+assert.ok(monitor.includes("paused default")&&monitor.includes("enabled:false"),"personal monitoring must be opt-in for each account");
+assert.ok(monitor.includes("not a live watch of email, banking or all world events"),"monitoring scope must be explicit");
+assert.ok(monitor.includes("Acknowledge only hides an alert"),"acknowledgement must not be treated as real-world resolution");
 assert.ok(presence.includes("strategyMove?.candidate_id"),"recorded strategies must remain visible even if the Council is unavailable");
 assert.ok(presence.includes("candidate_id:strategyMove.candidate_id"),"internal preparation must follow the selected owned opportunity");
 assert.ok(presence.includes("workError?'Prepared work is temporarily unavailable.'"),"failed preparation reads must not imply no work exists");
