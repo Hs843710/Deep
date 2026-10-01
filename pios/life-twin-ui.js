@@ -110,8 +110,14 @@
     if(!c){box.innerHTML='<span>EXECUTIVE OFFICE</span><b>Briefing unavailable</b><p class="life-intel-reason">The specialist assessment could not be loaded. Your Digital Twin remains available; no new action is implied.</p>';return}
     const move=chief.next_move?'<p class="life-intel-reason"><strong>Next move:</strong> '+esc(chief.next_move.detail||chief.next_move.title||'')+(chief.next_move.approval_required?' · Approval required before external contact.':'')+'</p>':'';
     const conflicts=(chief.conflicts||[]).slice(0,2).map(x=>'<p class="life-intel-reason council-conflict"><strong>Specialist disagreement:</strong> '+esc(x.issue||'')+' <strong>Resolution:</strong> '+esc(x.resolution||'')+'</p>').join('');
+    const thought=c.deliberation||{},hypotheses=(thought.competing_hypotheses||[]).slice(0,3);
+    const deliberation=thought.policy?`<div class="council-deliberation"><div class="council-deliberation-head"><span>${esc(thought.policy.replaceAll('_',' '))}</span><b>${esc(thought.belief||'')}</b></div>
+      ${thought.strongest_counterargument?`<p><strong>Strongest counterargument</strong>${esc(thought.strongest_counterargument)}</p>`:''}
+      ${thought.highest_value_missing_fact?`<p><strong>Highest-value missing fact</strong>${esc(thought.highest_value_missing_fact)}</p>`:''}
+      ${thought.falsification_test?`<p><strong>Falsification test</strong>${esc(thought.falsification_test)}</p>`:''}
+      ${hypotheses.length?`<div class="council-hypotheses">${hypotheses.map(h=>`<span class="${esc(h.status||'alternative')}"><b>${esc(h.id||'Hypothesis')}</b><small>${esc(h.claim||'')}</small></span>`).join('')}</div>`:''}</div>`:''; 
     const advisers=(c.specialists||[]).slice(0,7).map(a=>`<div class="council-adviser"><div><b>${esc(a.name||a.id)}</b><span class="council-adviser-status ${esc(a.status)}">${esc(a.status)}</span></div><p>${esc(a.headline||'')}</p>${a.challenge?`<small><strong>Unknown or constraint:</strong> ${esc(a.challenge)}</small>`:''}${(a.facts||[]).slice(0,2).map(x=>`<small class="council-fact">${esc(x.text||'')}</small>`).join('')}${a.next_check&&a.status!=='watch'?`<small class="council-next">${esc(a.next_check)}</small>`:''}</div>`).join('');
-    box.innerHTML=`<span>EXECUTIVE OFFICE · ${esc(String(c.mode||'').toUpperCase())}</span><b>${esc(chief.headline||'Personal briefing')}</b><p class="life-intel-reason">${esc(chief.reason||'')}</p>${move}${conflicts}<div class="council-advisers">${advisers}</div><p class="council-footnote">Specialist findings are evidence-based analyses, not separate licensed advisers. No external action is performed here.</p>`;
+    box.innerHTML=`<span>EXECUTIVE OFFICE · ${esc(String(c.mode||'').toUpperCase())}</span><b>${esc(chief.headline||'Personal briefing')}</b><p class="life-intel-reason">${esc(chief.reason||'')}</p>${move}${conflicts}${deliberation}<div class="council-advisers">${advisers}</div><p class="council-footnote">Specialist findings are evidence-based analyses, not separate licensed advisers. No external action is performed here.</p>`;
     document.querySelectorAll('[data-life-node]').forEach(n=>n.classList.remove('selected'));
   }
 
