@@ -6,6 +6,7 @@ on:
     paths:
       - 'pios/**'
       - 'supabase/functions/**'
+      - 'supabase/config.toml'
       - '.github/workflows/pios-pages.yml'
   workflow_dispatch:
 
@@ -54,6 +55,8 @@ jobs:
         run: node pios/tests/evidence-acquirer.test.mjs
       - name: Test source ingestion authentication
         run: node pios/tests/ingestor-auth.test.mjs
+      - name: Test Supabase function auth policy
+        run: node pios/tests/supabase-auth-policy.test.mjs
       - name: Test internal authentication boundaries
         run: node pios/tests/internal-auth-boundaries.test.mjs
       - name: Test research approval boundary
