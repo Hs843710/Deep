@@ -190,16 +190,17 @@ function applyVerifiedEstimateEvidence(workspace,evidence=[],now=new Date().toIS
  const accepted=[...latest.values()],forLine=code=>accepted.filter(e=>e.line_code===code&&!e.kind.startsWith("contingency_"));
  const round2=n=>Math.round((Number(n)+Number.EPSILON)*100)/100;
  const items=(workspace.line_items||[]).map(item=>{
-   const ev=forLine(String(item.code||"")),q=ev.find(e=>e.kind==="quantity")||null,quantity=q?.value??null,unit=q?trim(q.unit,80)||null:null;
+   const code=String(item.code||""),ev=forLine(code),q=ev.find(e=>e.kind==="quantity")||null,quantity=q?.value??null,unit=q?trim(q.unit,80)||null:null;
+   const rejectedCostEvidence=rejected.some(r=>r.line_code===code&&["labor","material","equipment","subcontract","disposal","mobilization","other"].includes(String(r.kind||"")));
    const components=[];let total=0,hasCost=false,unitCostNeedsQuantity=false;
    for(const e of ev.filter(x=>["labor","material","equipment","subcontract","disposal","mobilization","other"].includes(x.kind))){
      const multiplier=e.basis==="unit"?quantity:1;
      if(e.basis==="unit"&&quantity===null){unitCostNeedsQuantity=true;components.push({kind:e.kind,component:e.component,basis:e.basis,rate:e.value,total:null,source_ref:e.source_ref});continue}
      const amount=round2(e.value*multiplier);total+=amount;hasCost=true;components.push({kind:e.kind,component:e.component,basis:e.basis,rate:e.value,total:amount,source_ref:e.source_ref});
    }
-   const totalCost=hasCost&&!unitCostNeedsQuantity?round2(total):null;
+   const totalCost=hasCost&&!unitCostNeedsQuantity&&!rejectedCostEvidence?round2(total):null;
    const quantityVerified=quantity!==null,costVerified=totalCost!==null;
-   return {...item,quantity,unit,total_cost:totalCost,status:costVerified?(quantityVerified?"verified_costed":"verified_lump_sum_cost"):unitCostNeedsQuantity?"needs_quantity":"needs_cost",verified_cost_components:components,
+   return {...item,quantity,unit,total_cost:totalCost,status:rejectedCostEvidence?"invalid_cost_evidence":costVerified?(quantityVerified?"verified_costed":"verified_lump_sum_cost"):unitCostNeedsQuantity?"needs_quantity":"needs_cost",verified_cost_components:components,
      evidence_state:{quantity_verified:quantityVerified,cost_verified:costVerified}};
  });
  const missing=[];
@@ -212,8 +213,9 @@ function applyVerifiedEstimateEvidence(workspace,evidence=[],now=new Date().toIS
  const cp=accepted.filter(e=>e.kind==="contingency_pct").sort((a,b)=>ts(b.observed_at)-ts(a.observed_at))[0]||null;
  const ca=accepted.filter(e=>e.kind==="contingency_amount").sort((a,b)=>ts(b.observed_at)-ts(a.observed_at))[0]||null;
  let contingency=null,contingencyMode=null;
- if(subtotal!==null&&ca){contingency=round2(ca.value);contingencyMode="verified_amount"}
- else if(subtotal!==null&&cp){contingency=round2(subtotal*cp.value/100);contingencyMode="verified_percent"}
+ const rejectedContingency=rejected.some(r=>["contingency_pct","contingency_amount"].includes(String(r.kind||"")));
+ if(subtotal!==null&&!rejectedContingency&&ca){contingency=round2(ca.value);contingencyMode="verified_amount"}
+ else if(subtotal!==null&&!rejectedContingency&&cp){contingency=round2(subtotal*cp.value/100);contingencyMode="verified_percent"}
  else missing.push("estimate: verified contingency policy");
  const totalEstimatedCost=subtotal!==null&&contingency!==null?round2(subtotal+contingency):null;
  const validFloor=floor!==null&&floor>=0&&floor<100;
