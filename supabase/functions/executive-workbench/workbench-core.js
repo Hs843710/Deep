@@ -161,4 +161,74 @@ function prepareEstimateWorkspace(candidate,signal=null,capabilities=[],goalCont
    truth_boundary:"This is an estimating workspace, not a completed estimate or bid. Blank numeric fields are intentional until evidence is available."};
 }
 
-export {prepareQuote,prepareCandidateQualification,prepareEstimateWorkspace};
+function applyVerifiedEstimateEvidence(workspace,evidence=[],now=new Date().toISOString()){
+ if(!workspace||workspace.kind!=="estimate_workspace")throw new Error("A prepared estimate workspace is required.");
+ const currency=String(workspace?.pricing?.currency||"CAD").toUpperCase(),floor=v(workspace?.pricing?.minimum_gross_margin_pct);
+ const kinds=new Set(["quantity","labor","material","equipment","subcontract","disposal","mobilization","other","contingency_pct","contingency_amount"]);
+ const latest=new Map(),rejected=[];
+ const ts=x=>{const n=Date.parse(String(x||""));return Number.isFinite(n)?n:0};
+ for(const raw of Array.isArray(evidence)?evidence:[]){
+   const e=raw&&typeof raw==="object"?raw:{},kind=String(e.kind||""),line=String(e.line_code||"");
+   const value=v(e.value),source=trim(e.source_ref,500),state=String(e.verification_state||"");
+   const costKind=["labor","material","equipment","subcontract","disposal","mobilization","other","contingency_amount"].includes(kind);
+   const estimateKind=["contingency_pct","contingency_amount"].includes(kind);
+   const basis=String(e.basis||"");
+   let reason="";
+   if(!kinds.has(kind))reason="unsupported_kind";
+   else if(state!=="verified")reason="not_verified";
+   else if(!source)reason="missing_source";
+   else if(value===null||value<0||(kind==="quantity"&&value<=0))reason="invalid_value";
+   else if(!estimateKind&&!line)reason="missing_line_code";
+   else if(costKind&&String(e.currency||"").toUpperCase()!==currency)reason="currency_mismatch";
+   else if(["labor","material","equipment","subcontract","disposal","mobilization","other"].includes(kind)&&!["unit","total"].includes(basis))reason="missing_cost_basis";
+   else if(kind==="contingency_pct"&&(value<0||value>=100))reason="invalid_contingency_pct";
+   if(reason){rejected.push({line_code:line||null,kind:kind||null,reason});continue}
+   const component=trim(e.component||kind,160)||kind,key=(estimateKind?"__estimate__":line)+"|"+kind+"|"+component;
+   const prior=latest.get(key);
+   if(!prior||ts(e.observed_at)>=ts(prior.observed_at))latest.set(key,{...e,line_code:line,kind,value,source_ref:source,component,basis});
+ }
+ const accepted=[...latest.values()],forLine=code=>accepted.filter(e=>e.line_code===code&&!e.kind.startsWith("contingency_"));
+ const round2=n=>Math.round((Number(n)+Number.EPSILON)*100)/100;
+ const items=(workspace.line_items||[]).map(item=>{
+   const ev=forLine(String(item.code||"")),q=ev.find(e=>e.kind==="quantity")||null,quantity=q?.value??null,unit=q?trim(q.unit,80)||null:null;
+   const components=[];let total=0,hasCost=false,unitCostNeedsQuantity=false;
+   for(const e of ev.filter(x=>["labor","material","equipment","subcontract","disposal","mobilization","other"].includes(x.kind))){
+     const multiplier=e.basis==="unit"?quantity:1;
+     if(e.basis==="unit"&&quantity===null){unitCostNeedsQuantity=true;components.push({kind:e.kind,component:e.component,basis:e.basis,rate:e.value,total:null,source_ref:e.source_ref});continue}
+     const amount=round2(e.value*multiplier);total+=amount;hasCost=true;components.push({kind:e.kind,component:e.component,basis:e.basis,rate:e.value,total:amount,source_ref:e.source_ref});
+   }
+   const totalCost=hasCost&&!unitCostNeedsQuantity?round2(total):null;
+   const quantityVerified=quantity!==null,costVerified=totalCost!==null;
+   return {...item,quantity,unit,total_cost:totalCost,status:costVerified?(quantityVerified?"verified_costed":"verified_lump_sum_cost"):unitCostNeedsQuantity?"needs_quantity":"needs_cost",verified_cost_components:components,
+     evidence_state:{quantity_verified:quantityVerified,cost_verified:costVerified}};
+ });
+ const missing=[];
+ for(const item of items){
+   if(item.quantity_needed&&item.quantity===null)missing.push(item.code+": verified quantity");
+   if(item.total_cost===null)missing.push(item.code+": verified direct cost");
+ }
+ const costComplete=items.length>0&&items.every(x=>x.total_cost!==null),takeoffComplete=items.every(x=>!x.quantity_needed||x.quantity!==null);
+ const subtotal=costComplete?round2(items.reduce((a,x)=>a+Number(x.total_cost||0),0)):null;
+ const cp=accepted.filter(e=>e.kind==="contingency_pct").sort((a,b)=>ts(b.observed_at)-ts(a.observed_at))[0]||null;
+ const ca=accepted.filter(e=>e.kind==="contingency_amount").sort((a,b)=>ts(b.observed_at)-ts(a.observed_at))[0]||null;
+ let contingency=null,contingencyMode=null;
+ if(subtotal!==null&&ca){contingency=round2(ca.value);contingencyMode="verified_amount"}
+ else if(subtotal!==null&&cp){contingency=round2(subtotal*cp.value/100);contingencyMode="verified_percent"}
+ else missing.push("estimate: verified contingency policy");
+ const totalEstimatedCost=subtotal!==null&&contingency!==null?round2(subtotal+contingency):null;
+ const validFloor=floor!==null&&floor>=0&&floor<100;
+ if(!validFloor)missing.push("estimate: valid minimum gross margin");
+ const minPrice=totalEstimatedCost!==null&&validFloor?round2(totalEstimatedCost/(1-floor/100)):null;
+ const grossProfit=minPrice!==null&&totalEstimatedCost!==null?round2(minPrice-totalEstimatedCost):null;
+ const complete=costComplete&&takeoffComplete&&contingency!==null&&validFloor;
+ return {...workspace,line_items:items,pricing:{...workspace.pricing,subtotal_direct_cost:subtotal,contingency,
+   contingency_mode:contingencyMode,total_estimated_cost:totalEstimatedCost,minimum_price_at_margin_floor:minPrice,
+   estimated_gross_profit_at_margin_floor:grossProfit,estimated_margin_pct:minPrice!==null?floor:null,quoted_price:null},
+   calculation:{status:complete?"verified_complete":"partial",takeoff_complete:takeoffComplete,direct_cost_complete:costComplete,
+     verified_evidence_used:accepted.length,rejected_evidence_count:rejected.length,missing_evidence:[...new Set(missing)],calculated_at:now},
+   rejected_evidence:rejected,
+   action_status:{...(workspace.action_status||{}),estimate_completed:complete,external_contact:"not_performed",bid_submitted:false,commitment_made:false},
+   truth_boundary:complete?"Verified source-linked quantities and direct costs support this internal estimate calculation. The minimum-price check is not a customer quote, bid or commitment.":"This estimate remains partial. Missing or unverified evidence is left unresolved; no customer quote, bid or commitment was created."};
+}
+
+export {prepareQuote,prepareCandidateQualification,prepareEstimateWorkspace,applyVerifiedEstimateEvidence};
