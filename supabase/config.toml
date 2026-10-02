@@ -1,0 +1,39 @@
+# PIOS Edge Function authentication policy.
+# Supabase verifies JWTs by default. Only internal scheduler/dual-auth functions
+# disable the platform JWT gate, and each of these functions MUST authenticate
+# the caller inside the handler before privileged work is performed.
+#
+# Keep this file aligned with the live "verify_jwt" settings in the
+# Personal Intelligence OS Supabase project.
+
+[functions.world-ingest]
+verify_jwt = false
+
+[functions.award-ingest]
+verify_jwt = false
+
+[functions.prime-directory-ingest]
+verify_jwt = false
+
+[functions.alberta-upcoming-ingest]
+verify_jwt = false
+
+[functions.apc-ingest]
+verify_jwt = false
+
+[functions.jobbank-ingest]
+verify_jwt = false
+
+[functions.brief-refresh]
+verify_jwt = false
+
+[functions.career-scheduled]
+verify_jwt = false
+
+[functions.benchmark-runner]
+verify_jwt = false
+
+# This function accepts either a verified user JWT or the internal scheduler
+# token so scheduled graph refreshes can run without impersonating a user.
+[functions.personal-graph-core]
+verify_jwt = false
