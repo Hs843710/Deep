@@ -8,26 +8,35 @@ function checkPriority(check){
   const topicRank=label.includes("eligib")?9:label.includes("profit")||label.includes("margin")?8:label.includes("capital")?7:label.includes("deadline")?6:label.includes("capability")?5:3;
   return stateRank+topicRank;
 }
-function deliberation({council=null,candidate=null,personalValue=null,preparedWork=[],learningContext=null}={}){
+function deliberation({council=null,candidate=null,personalValue=null,preparedWork=[],researchArtifacts=[],learningContext=null}={}){
   const chief=council?.chief_of_staff||{},specialists=Array.isArray(council?.specialists)?council.specialists:[];
   const work=(preparedWork||[]).find(w=>w?.status==="prepared"&&w?.candidate_id===candidate?.id)||null,content=work?.content||{};
+  const research=(researchArtifacts||[]).find(x=>x?.candidate_id===candidate?.id)||null;
+  const researchConclusion=research?.conclusion||{},researchEvidence=Array.isArray(research?.evidence)?research.evidence:[],researchUnresolved=Array.isArray(research?.unresolved)?research.unresolved:[];
+  const researchComplete=researchConclusion.status==="complete";
+  const researchBlock=researchConclusion.status==="blocked_by_unverified_requirement";
   const checks=[...(content.qualification_checks||[]),...(content.internal_checks||[])].filter(Boolean).sort((a,b)=>checkPriority(b)-checkPriority(a));
   const blockedCheck=checks.find(x=>["blocked","expired","missing"].includes(String(x.state||"")));
   const openCheck=checks.find(x=>["needs_verification","needs_pricing","unknown","needs_data"].includes(String(x.state||"")));
   const blockedSpecialist=specialists.find(s=>s.status==="blocked")||null;
   const verifying=specialists.filter(s=>s.status==="verify");
-  const personalUnknowns=(personalValue?.not_known||[]).filter(x=>typeof x==="string");
-  const workUnknowns=(content.unknowns||[]).filter(x=>typeof x==="string");
+  const genericResearchTopic=/eligib|qualif|mandatory|submission|requirement|bond|insurance|\bcor\b|secor/i;
+  const researchQuestion=String(research?.question||"");
+  const canClearGeneric=researchComplete&&genericResearchTopic.test(researchQuestion);
+  const personalUnknowns=(personalValue?.not_known||[]).filter(x=>typeof x==="string"&&!(canClearGeneric&&genericResearchTopic.test(x)));
+  const workUnknowns=(content.unknowns||[]).filter(x=>typeof x==="string"&&!(canClearGeneric&&genericResearchTopic.test(x)));
+  const researchUnknowns=researchUnresolved.filter(x=>x?.decision_sensitive).map(x=>String(x.reason||x.topic||"")).filter(Boolean);
   const challenges=specialists.map(s=>s.challenge).filter(Boolean);
-  const unknowns=uniq([...personalUnknowns,...workUnknowns,...challenges]);
+  const unknowns=uniq([...researchUnknowns,...personalUnknowns,...workUnknowns,...challenges]);
   const supports=[];
   for(const s of specialists)for(const f of s.facts||[])if(f?.text)supports.push({claim:f.text,source:f.source||s.id});
   for(const e of content.evidence||[])supports.push({claim:txt(e.field)+": "+(typeof e.value==="string"?e.value:JSON.stringify(e.value)),source:e.source||"prepared_work"});
+  for(const e of researchEvidence)supports.push({claim:txt(e.field)+": "+(typeof e.value==="string"?e.value:JSON.stringify(e.value)),source:"research_artifact:"+(research?.id||"unknown")});
   const conflict=(chief.conflicts||[])[0]||null;
-  const hard=blockedCheck||blockedSpecialist||council?.mode==="blocked";
+  const hard=blockedCheck||blockedSpecialist||researchBlock||council?.mode==="blocked";
   const missingFact=hard?
-    (blockedCheck?.detail||blockedSpecialist?.challenge||chief.reason||null):
-    (openCheck?.detail||unknowns[0]||null);
+    (researchUnknowns[0]||blockedCheck?.detail||blockedSpecialist?.challenge||chief.reason||null):
+    (researchUnknowns[0]||openCheck?.detail||unknowns[0]||null);
   let policy="PROCEED_REVERSIBLY";
   if(council?.mode==="quiet")policy="QUIET";
   else if(hard)policy="BLOCK";
@@ -78,10 +87,12 @@ function deliberation({council=null,candidate=null,personalValue=null,preparedWo
       missingFact,
       ...(content.dependencies||[]).slice(0,2)
     ]).slice(0,5),
-    research_commission:policy==="LEARN_FIRST"&&missingFact?{objective:missingFact,boundary:"Acquire only evidence capable of changing the decision; do not make an external commitment.",auto_execution_authorized:false}:null,
+    research_commission:policy==="LEARN_FIRST"&&missingFact?{objective:missingFact,boundary:"Acquire only read-only evidence capable of changing the decision; do not authenticate to external portals, submit forms, contact anyone or make a commitment.",auto_execution_authorized:true,executor:"evidence-acquirer"}:null,
     calibration_note:calibrationNote,
     prepared_work_id:work?.id||null,
-    prepared_work_kind:content.kind||null
+    prepared_work_kind:content.kind||null,
+    research_artifact_id:research?.id||null,
+    research_status:researchConclusion.status||null
   };
 }
 export {deliberation};
