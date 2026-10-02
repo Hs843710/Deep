@@ -9,7 +9,7 @@ const learning={summary:{calibration_ready:0}};
 const learn=deliberate({council:baseCouncil,candidate,personalValue:{not_known:["Exact eligibility is unverified."]},preparedWork:[{id:"w1",candidate_id:"c1",status:"prepared",content:{kind:"candidate_qualification",qualification_checks:[{label:"Eligibility",state:"needs_verification",detail:"Verify mandatory qualifications."}],unknowns:["Mandatory forms unknown."]}}],learningContext:learning});
 assert.equal(learn.policy,"LEARN_FIRST");
 assert.match(learn.highest_value_missing_fact,/Verify mandatory qualifications/);
-assert.equal(learn.research_commission.auto_execution_authorized,false);
+assert.equal(learn.research_commission.auto_execution_authorized,true);\nassert.equal(learn.research_commission.executor,"evidence-acquirer");\nassert.match(learn.research_commission.boundary,/do not authenticate to external portals|do not.*contact anyone/i);
 assert.equal(learn.competing_hypotheses.find(x=>x.id==="LEARN_FIRST").status,"leading");
 const blocked=deliberate({council:{...baseCouncil,mode:"blocked",specialists:[{id:"finance",status:"blocked",challenge:"Capital requirement exceeds deployable cash.",facts:[]}]},candidate,preparedWork:[],learningContext:learning});
 assert.equal(blocked.policy,"BLOCK");
