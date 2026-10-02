@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {runInNewContext} from "node:vm";
 const source=readFileSync("supabase/functions/executive-workbench/workbench-core.js","utf8").replace(/export\s*\{[^}]*\};/g,"");
-const {prepareQuote:prepare,prepareCandidateQualification:prepareCandidate}=runInNewContext(source+";({prepareQuote,prepareCandidateQualification});");
+const {prepareQuote:prepare,prepareCandidateQualification:prepareCandidate,prepareEstimateWorkspace:prepareEstimate}=runInNewContext(source+";({prepareQuote,prepareCandidateQualification,prepareEstimateWorkspace});");
 const record={id:"11111111-1111-4111-8111-111111111111",title:"Northwest egress windows",customer:"Example property manager",
  stage:"quoted",quoted_value:36813,updated_at:"2026-09-18T10:00:00Z",estimated_direct_cost:null,estimated_margin_pct:null};
 const w=prepare(record,{desired_state:{minimum_gross_margin_pct:25}},"2026-09-19T00:00:00Z");
@@ -55,4 +55,15 @@ assert.equal(capitalBlocked.qualification_checks.find(x=>x.label==="Capital").st
 const expired=prepareCandidate(candidate,{...signal,deadline_at:"2026-09-30T14:00:00Z"},[{name:"siding/cladding"}],null,null,"2026-10-01T23:00:00Z");
 assert.equal(expired.recommendation.state,"blocked");
 assert.equal(expired.qualification_checks.find(x=>x.label==="Deadline").state,"expired");
-console.log("PASS executive workbench: quote follow-up + candidate qualification, source provenance, capability/financial/deadline gates, no external execution");
+const estimate=prepareEstimate(candidate,signal,[{name:"Siding and cladding"},{name:"Construction estimating"}],{desired_state:{minimum_gross_margin_pct:25}},pack,{unresolved:[{topic:"tender_documents",reason:"Tender drawings have not been retrieved.",decision_sensitive:true}]},"2026-10-01T23:00:00Z");
+assert.equal(estimate.action_status.preparation,"completed");
+assert.equal(estimate.action_status.estimate_completed,false);
+assert.equal(estimate.action_status.external_contact,"not_performed");
+assert.equal(estimate.pricing.minimum_gross_margin_pct,25);
+assert.equal(estimate.pricing.quoted_price,null);
+assert.ok(estimate.line_items.some(x=>x.code==="cladding"&&x.quantity===null&&x.total_cost===null));
+assert.ok(estimate.line_items.some(x=>x.code==="abatement"&&x.bucket==="specialist_partner"));
+assert.ok(estimate.line_items.some(x=>x.code==="electrical"&&x.bucket==="specialist_partner"));
+assert.ok(estimate.unknowns.some(x=>x.includes("drawings")));
+assert.match(estimate.truth_boundary,/not a completed estimate or bid/i);
+console.log("PASS executive workbench: quote follow-up + candidate qualification + estimate workspace, evidence gaps preserved, no fabricated pricing or external execution");
