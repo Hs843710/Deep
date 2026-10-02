@@ -49,6 +49,8 @@ jobs:
         run: node pios/tests/personal-graph.test.mjs
       - name: Test adversarial Executive Council
         run: node pios/tests/executive-deliberation.test.mjs
+      - name: Test autonomous evidence acquisition
+        run: node pios/tests/evidence-acquirer.test.mjs
       - name: Assemble production shell
         run: |
           python - <<'PY'
