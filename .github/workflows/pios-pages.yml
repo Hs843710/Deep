@@ -55,6 +55,8 @@ jobs:
         run: node pios/tests/ingestor-auth.test.mjs
       - name: Test internal authentication boundaries
         run: node pios/tests/internal-auth-boundaries.test.mjs
+      - name: Test research approval boundary
+        run: node pios/tests/research-loop.test.mjs
       - name: Assemble production shell
         run: |
           python - <<'PY'
