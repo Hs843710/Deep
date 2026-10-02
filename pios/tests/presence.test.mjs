@@ -16,12 +16,15 @@ assert.ok(style.includes('body[data-pios-view="command"] .left-rail{display:none
 assert.ok(style.includes('grid-template-columns:minmax(0,1fr)'),"Command Center must give the Earth/presence the full width");
 assert.ok(twin.includes("window.updatePiosPresence"),"twin updates must feed the executive presence");
 assert.ok(orch.includes("callFn('executive-workbench'"),"the intelligence cycle must perform bounded internal preparation");
-assert.ok(workbench.includes('"prepare_quote","prepare_candidate_qualification"'),"workbench must expose only the bounded internal workers");
+assert.ok(workbench.includes('"prepare_quote","prepare_candidate_qualification"'),"workbench must expose the bounded internal preparation workers");
+assert.ok(workbench.includes('"calculate_estimate"'),"workbench must expose evidence-gated internal estimate calculation");
 assert.ok(workbench.includes('stage=eq.quoted'),"only owned quoted work may be prepared");
 assert.ok(workbench.includes("external_action_performed:false"),"preparation must never claim external action");
 assert.ok(presence.includes("w?.is_current"),"stale prepared artifacts cannot be marked current");
 assert.ok(presence.includes("external_message_sent"),"draft state must keep external contact distinguishable");
 assert.ok(presence.includes("Prepare internal work"),"a selected move can trigger a bounded internal worker directly");
+assert.ok(presence.includes("Minimum internal price at"),"estimate drawer must expose the margin-floor price check");
+assert.ok(presence.includes("Customer quote: not created"),"estimate economics must never be presented as a customer quote");
 assert.ok(presence.includes("result?.prepared&&currentWork()"),"the interface cannot claim completed work until it reloads the stored artifact");
 assert.ok(presence.includes("autoPreparedKey!==key"),"safe preparation should run once per selected candidate and session");
 assert.ok(presence.includes("prep?.prepared&&localStorage.getItem('pios_token')===token"),"auto preparation may display results only for the same session");
