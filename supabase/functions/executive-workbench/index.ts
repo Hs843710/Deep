@@ -1,6 +1,6 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import {prepareQuote,prepareCandidateQualification,prepareEstimateWorkspace} from "./workbench-core.js";
+import {prepareQuote,prepareCandidateQualification,prepareEstimateWorkspace,applyVerifiedEstimateEvidence} from "./workbench-core.js";
 const U=Deno.env.get("SUPABASE_URL")!,A=Deno.env.get("SUPABASE_ANON_KEY")!;
 const H={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization,x-client-info,apikey,content-type","Access-Control-Allow-Methods":"GET,POST,OPTIONS"};
 const J=(x:any,status=200)=>new Response(JSON.stringify(x),{status,headers:{...H,"Content-Type":"application/json","Cache-Control":"no-store"}});
@@ -42,10 +42,30 @@ Deno.serve(async request=>{
       note:"These are completed internal preparation artifacts, not completed external actions or verified customer outcomes."});
   }
   const body=await request.json().catch(()=>({})),operation=body?.operation;
-  if(!["prepare_quote","prepare_candidate_qualification","prepare_estimate_workspace"].includes(operation))
+  if(!["prepare_quote","prepare_candidate_qualification","prepare_estimate_workspace","calculate_estimate"].includes(operation))
     return J({error:"Unsupported internal preparation operation."},400);
   let candidate=typeof body.candidate_id==="string"?body.candidate_id:null;
   if(candidate&&!UUID.test(candidate))return J({error:"Invalid candidate ID."},400);
+
+  if(operation==="calculate_estimate"){
+    if(!candidate)return J({error:"candidate_id is required to calculate an estimate."},400);
+    const candidates=await db("opportunity_candidates?user_id=eq."+uid+"&id=eq."+candidate+"&select=*&limit=1",jwt);
+    const c=candidates?.[0];if(!c)return J({error:"Candidate not found for this account."},404);
+    const workspaces=await db("prepared_work?user_id=eq."+uid+"&candidate_id=eq."+c.id+"&work_type=eq.estimate_workspace&status=eq.prepared&select=*&order=created_at.desc&limit=5",jwt);
+    const workspace=(workspaces||[]).find((x:any)=>new Date(x.source_updated_at).getTime()===new Date(c.updated_at).getTime());
+    if(!workspace)return J({ok:true,calculated:false,reason:"Prepare a current estimate workspace before applying cost evidence."},409);
+    const evidence=Array.isArray(body?.evidence)?body.evidence.slice(0,100):[];
+    if(!evidence.length)return J({error:"At least one source-linked estimate evidence entry is required."},400);
+    const content=applyVerifiedEstimateEvidence(workspace.content,evidence,new Date().toISOString());
+    if(!content?.calculation?.verified_evidence_used)return J({ok:false,calculated:false,error:"No submitted entry cleared the verified-evidence gate.",rejected_evidence:content?.rejected_evidence||[]},400);
+    content.evidence_assertion={mode:"authenticated_user_source_linked",independently_validated_by_pios:false,
+      detail:"The authenticated user supplied these source references and verification states. PIOS validated structure, currency, completeness and calculation rules but did not independently inspect each cited source in this operation."};
+    const insertion={user_id:uid,operating_id:null,candidate_id:c.id,work_type:"estimate_calculation",status:"prepared",source_updated_at:c.updated_at,content};
+    const saved=await db("prepared_work",jwt,{method:"POST",headers:{"Content-Type":"application/json",Prefer:"return=representation"},body:JSON.stringify([insertion])});
+    const work=saved?.[0]||null;
+    return J({ok:true,calculated:!!work,work,external_action_performed:false,
+      note:"Source-linked estimate evidence was applied to an internal calculation. No customer quote, bid, message, purchase or commitment was created."});
+  }
 
   if(operation==="prepare_estimate_workspace"){
     let candidates:any[];
