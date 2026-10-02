@@ -15,6 +15,7 @@ function deliberation({council=null,candidate=null,personalValue=null,preparedWo
   const researchConclusion=research?.conclusion||{},researchEvidence=Array.isArray(research?.evidence)?research.evidence:[],researchUnresolved=Array.isArray(research?.unresolved)?research.unresolved:[];
   const researchComplete=researchConclusion.status==="complete";
   const researchBlock=researchConclusion.status==="blocked_by_unverified_requirement";
+  const researchNeedsApproval=researchConclusion.status==="approval_required_for_evidence"||researchUnresolved.some(x=>x?.requires_approval===true);
   const checks=[...(content.qualification_checks||[]),...(content.internal_checks||[])].filter(Boolean).sort((a,b)=>checkPriority(b)-checkPriority(a));
   const blockedCheck=checks.find(x=>["blocked","expired","missing"].includes(String(x.state||"")));
   const openCheck=checks.find(x=>["needs_verification","needs_pricing","unknown","needs_data"].includes(String(x.state||"")));
@@ -87,7 +88,7 @@ function deliberation({council=null,candidate=null,personalValue=null,preparedWo
       missingFact,
       ...(content.dependencies||[]).slice(0,2)
     ]).slice(0,5),
-    research_commission:policy==="LEARN_FIRST"&&missingFact?{objective:missingFact,boundary:"Acquire only read-only evidence capable of changing the decision; do not authenticate to external portals, submit forms, contact anyone or make a commitment.",auto_execution_authorized:true,executor:"evidence-acquirer"}:null,
+    research_commission:policy==="LEARN_FIRST"&&missingFact?{objective:missingFact,boundary:researchNeedsApproval?"The next evidence step has an external side effect. Do not execute it without explicit approval.":"Acquire only read-only evidence capable of changing the decision; do not authenticate to external portals, submit forms, contact anyone or make a commitment.",auto_execution_authorized:!researchNeedsApproval,approval_required:researchNeedsApproval,executor:researchNeedsApproval?null:"evidence-acquirer"}:null,
     calibration_note:calibrationNote,
     prepared_work_id:work?.id||null,
     prepared_work_kind:content.kind||null,
