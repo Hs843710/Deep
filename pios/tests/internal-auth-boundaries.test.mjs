@@ -1,0 +1,13 @@
+import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+const read=slug=>readFileSync(`supabase/functions/${slug}/index.ts`,"utf8");
+const world=read("world-scan"),deep=read("deep-investigate"),partner=read("partner-match"),demo=read("demo-scan");
+const career=read("career-scan"),careerEval=read("career-evaluate"),careerScheduled=read("career-scheduled"),brief=read("brief-refresh");
+assert.ok(world.includes('Authorization:`Bearer ${jwt}`'),"world-scan must forward the user JWT");
+assert.ok(deep.includes("Authorization:authorization"),"deep-investigate must forward identity to partner-match");
+assert.ok(career.includes('Authorization:`Bearer ${jwt}`'),"career-scan must forward the user JWT");
+assert.ok(careerScheduled.includes('Authorization:`Bearer ${K}`'),"scheduled career evaluation must use service identity");
+assert.ok(brief.includes("x-pios-cron-token")&&brief.includes("piosAuthorized"),"brief refresh must require scheduler authentication");
+assert.ok(brief.includes('Authorization:`Bearer ${K}`'),"brief refresh must authenticate calls to protected analysis helpers");
+for(const [name,src] of [["demo-scan",demo],["partner-match",partner],["career-evaluate",careerEval]]) assert.ok(src.includes("Deno.serve"),name+" source must remain tracked");
+console.log("PASS internal auth boundaries: construction/career wrappers forward identity and scheduled brief refresh is guarded");
