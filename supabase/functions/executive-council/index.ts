@@ -42,16 +42,17 @@ Deno.serve(async(req:Request)=>{
    const r=await fetchJson(U+"/functions/v1/personal-consequence",jwt,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({candidate_id:candidate.id})});
    if(r?.ok)personalValue=r.personal_value||null;
   }
-  const [preparedWork,learningContext]=await Promise.all([
+  const [preparedWork,researchArtifacts,learningContext]=await Promise.all([
     candidate?query("prepared_work","user_id=eq."+uid+"&candidate_id=eq."+candidate.id+"&status=eq.prepared&select=*&order=created_at.desc&limit=8",jwt):Promise.resolve([]),
+    candidate?query("research_artifacts","user_id=eq."+uid+"&candidate_id=eq."+candidate.id+"&select=*&order=created_at.desc&limit=8",jwt):Promise.resolve([]),
     fetchJson(U+"/functions/v1/learning-context",jwt,{method:"GET"}).catch(()=>null)
   ]);
   const now=new Date().toISOString();
   const council=buildCouncil({profile:profiles?.[0]||{},goals:goals||[],contracts:contracts||[],finance:finance?.[0]||null,
    operating:operating||[],commitments:commits||[],capabilities:capabilities||[],resources:resources||[],
    sources:sources||[],candidate,personalValue,now});
-  const thought=deliberation({council,candidate,personalValue,preparedWork:preparedWork||[],learningContext});
-  council.version="executive_council_v3_adversarial";
+  const thought=deliberation({council,candidate,personalValue,preparedWork:preparedWork||[],researchArtifacts:researchArtifacts||[],learningContext});
+  council.version="executive_council_v4_research_loop";
   council.deliberation=thought;
   council.specialists=[...(council.specialists||[]),
     {id:"red_team",name:"Red Team & falsification",status:thought.policy==="BLOCK"?"blocked":thought.highest_value_missing_fact?"verify":"active",
