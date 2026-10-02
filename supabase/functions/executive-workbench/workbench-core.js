@@ -117,4 +117,48 @@ function prepareCandidateQualification(candidate,signal=null,capabilities=[],fin
  };
 }
 
-export {prepareQuote,prepareCandidateQualification};
+
+function prepareEstimateWorkspace(candidate,signal=null,capabilities=[],goalContract=null,qualification=null,research=null,now=new Date().toISOString()){
+ if(!candidate?.id||!candidate?.updated_at)throw new Error("Candidate source ID or update timestamp missing.");
+ const raw=signal?.raw_payload||{},scope=trim(raw.projectDescription||signal?.summary||candidate.title||"",7000);
+ const capNames=(capabilities||[]).map(x=>trim(x?.name,120)).filter(Boolean);
+ const items=[];
+ const push=(code,label,bucket,source_text,quantity_needed=true)=>{if(!items.some(x=>x.code===code))items.push({code,label,bucket,source_text:trim(source_text,500),quantity:null,unit:null,unit_cost:null,labor_cost:null,material_cost:null,subcontract_cost:null,total_cost:null,quantity_needed,status:quantity_needed?"needs_quantity":"scope_check"})};
+ if(/siding|cladding|fiber cement|fibre cement/i.test(scope))push("cladding","Exterior siding / cladding","core_or_partner","Published scope includes exterior cladding.");
+ if(/sheathing/i.test(scope))push("sheathing","Wall sheathing repair/replacement","scope_dependent","Published scope includes wall sheathing work.");
+ if(/weather barrier|air barrier|water-resistive|wrb/i.test(scope))push("barrier","Weather / air barrier","scope_dependent","Published scope includes building-envelope barrier work.");
+ if(/sealant|caulk/i.test(scope))push("sealants","Exterior sealants","scope_dependent","Published scope includes sealant work.");
+ if(/fascia|eavestrough|gutter|downspout/i.test(scope))push("drainage","Fascia / eavestrough / downspout","core_or_partner","Published scope includes roof-edge/drainage components.");
+ if(/asbestos|lead[- ]containing|lead paint|abatement/i.test(scope))push("abatement","Hazardous-material abatement","specialist_partner","Published scope references hazardous-material work.");
+ if(/electrical|powered garage door|garage door opener/i.test(scope))push("electrical","Electrical / powered garage-door work","specialist_partner","Published scope references electrical or powered garage-door work.");
+ if(/demolition|remove|removal/i.test(scope))push("demolition","Removal / demolition","scope_dependent","Published scope includes removal/demolition activity.");
+ if(!items.length)push("general_scope","General construction scope","needs_document_breakdown","Public record does not provide enough structured trade detail.");
+ const matched=(qualification?.evidence||[]).find(x=>x.field==="recorded_capability_overlap")?.value||[];
+ const floor=v(goalContract?.desired_state?.minimum_gross_margin_pct);
+ const docs=(research?.unresolved||[]).filter(x=>/document|quantity|mandatory|submission|drawing|specification|requirement/i.test(String(x?.topic||"")+" "+String(x?.reason||"")));
+ const unknowns=[
+   "No unit prices or quantities are invented by this workspace.",
+   "Direct labour, material, equipment, subcontract and disposal costs require project-specific evidence.",
+   "Schedule, mobilization, payment terms, retainage and working-capital timing require verification before commitment.",
+   ...(docs||[]).map(x=>String(x.reason||x.topic)),
+   ...((qualification?.unknowns||[]).filter(x=>typeof x==="string").slice(0,6))
+ ];
+ const pricing={currency:candidate.currency||"CAD",minimum_gross_margin_pct:floor,
+   subtotal_direct_cost:null,contingency:null,total_estimated_cost:null,quoted_price:null,estimated_gross_profit:null,estimated_margin_pct:null,
+   formula:floor!==null?"Minimum price check: price must support at least "+floor+"% estimated gross margin after verified direct costs.":"No minimum margin floor is recorded."};
+ const nextChecks=[
+   {order:1,label:"Obtain quantity-bearing documents",detail:"Use drawings/specifications or a verified takeoff before entering quantities."},
+   {order:2,label:"Confirm package boundaries",detail:"Separate self-performed work from licensed/specialist subcontract scopes."},
+   {order:3,label:"Enter project-specific direct costs",detail:"Populate labour, materials, equipment, subcontract, disposal and mobilization from evidence."},
+   {order:4,label:"Apply profitability guardrail",detail:floor!==null?"Do not advance if estimated gross margin is below "+floor+"%.":"Record a profitability floor before commitment."}
+ ];
+ return {kind:"estimate_workspace",headline:"Estimate workspace prepared for "+trim(candidate.title||"opportunity",220),
+   stage:"prepared_internal",source_candidate_id:candidate.id,source_signal_id:signal?.id||null,source_updated_at:candidate.updated_at,prepared_at:now,
+   summary:"PIOS converted the published scope into an internal pricing skeleton. Quantities and prices remain blank until supported by project evidence.",
+   published_scope:scope,recorded_capability_overlap:Array.isArray(matched)?matched:[],capabilities_considered:capNames,
+   line_items:items,pricing,unknowns:[...new Set(unknowns)],next_checks:nextChecks,
+   action_status:{preparation:"completed",estimate_completed:false,external_contact:"not_performed",bid_submitted:false,commitment_made:false,requires_human_approval:false},
+   truth_boundary:"This is an estimating workspace, not a completed estimate or bid. Blank numeric fields are intentional until evidence is available."};
+}
+
+export {prepareQuote,prepareCandidateQualification,prepareEstimateWorkspace};
