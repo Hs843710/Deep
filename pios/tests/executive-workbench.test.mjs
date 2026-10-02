@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {runInNewContext} from "node:vm";
 const source=readFileSync("supabase/functions/executive-workbench/workbench-core.js","utf8").replace(/export\s*\{[^}]*\};/g,"");
-const {prepareQuote:prepare,prepareCandidateQualification:prepareCandidate,prepareEstimateWorkspace:prepareEstimate}=runInNewContext(source+";({prepareQuote,prepareCandidateQualification,prepareEstimateWorkspace});");
+const {prepareQuote:prepare,prepareCandidateQualification:prepareCandidate,prepareEstimateWorkspace:prepareEstimate,applyVerifiedEstimateEvidence:applyEvidence}=runInNewContext(source+";({prepareQuote,prepareCandidateQualification,prepareEstimateWorkspace,applyVerifiedEstimateEvidence});");
 const record={id:"11111111-1111-4111-8111-111111111111",title:"Northwest egress windows",customer:"Example property manager",
  stage:"quoted",quoted_value:36813,updated_at:"2026-09-18T10:00:00Z",estimated_direct_cost:null,estimated_margin_pct:null};
 const w=prepare(record,{desired_state:{minimum_gross_margin_pct:25}},"2026-09-19T00:00:00Z");
@@ -65,5 +65,42 @@ assert.ok(estimate.line_items.some(x=>x.code==="cladding"&&x.quantity===null&&x.
 assert.ok(estimate.line_items.some(x=>x.code==="abatement"&&x.bucket==="specialist_partner"));
 assert.ok(estimate.line_items.some(x=>x.code==="electrical"&&x.bucket==="specialist_partner"));
 assert.ok(estimate.unknowns.some(x=>x.includes("drawings")));
+
 assert.match(estimate.truth_boundary,/not a completed estimate or bid/i);
-console.log("PASS executive workbench: quote follow-up + candidate qualification + estimate workspace, evidence gaps preserved, no fabricated pricing or external execution");
+
+const verifiedEvidence=[
+ {line_code:"cladding",kind:"quantity",value:1000,unit:"sq_ft",verification_state:"verified",source_ref:"drawing:A3.1",observed_at:"2026-10-01T18:00:00Z"},
+ {line_code:"cladding",kind:"material",component:"cladding material",value:7.5,basis:"unit",currency:"CAD",verification_state:"verified",source_ref:"supplier_quote:cladding",observed_at:"2026-10-01T18:10:00Z"},
+ {line_code:"cladding",kind:"labor",component:"installation labor",value:4,basis:"unit",currency:"CAD",verification_state:"verified",source_ref:"labor_rate:crew-a",observed_at:"2026-10-01T18:10:00Z"},
+ {line_code:"abatement",kind:"quantity",value:1,unit:"lot",verification_state:"verified",source_ref:"scope:abatement",observed_at:"2026-10-01T18:00:00Z"},
+ {line_code:"abatement",kind:"subcontract",value:5000,basis:"total",currency:"CAD",verification_state:"verified",source_ref:"subcontract_quote:abatement",observed_at:"2026-10-01T18:20:00Z"},
+ {line_code:"electrical",kind:"quantity",value:1,unit:"lot",verification_state:"verified",source_ref:"scope:electrical",observed_at:"2026-10-01T18:00:00Z"},
+ {line_code:"electrical",kind:"subcontract",value:2500,basis:"total",currency:"CAD",verification_state:"verified",source_ref:"subcontract_quote:electrical",observed_at:"2026-10-01T18:20:00Z"},
+ {kind:"contingency_pct",value:5,verification_state:"verified",source_ref:"estimating_policy:project-risk",observed_at:"2026-10-01T18:30:00Z"}
+];
+const calculated=applyEvidence(estimate,verifiedEvidence,"2026-10-01T23:15:00Z");
+assert.equal(calculated.calculation.status,"verified_complete");
+assert.equal(calculated.calculation.takeoff_complete,true);
+assert.equal(calculated.calculation.direct_cost_complete,true);
+assert.equal(calculated.pricing.subtotal_direct_cost,19000);
+assert.equal(calculated.pricing.contingency,950);
+assert.equal(calculated.pricing.total_estimated_cost,19950);
+assert.equal(calculated.pricing.minimum_price_at_margin_floor,26600);
+assert.equal(calculated.pricing.estimated_gross_profit_at_margin_floor,6650);
+assert.equal(calculated.pricing.estimated_margin_pct,25);
+assert.equal(calculated.pricing.quoted_price,null);
+assert.equal(calculated.action_status.estimate_completed,true);
+assert.equal(calculated.action_status.external_contact,"not_performed");
+assert.match(calculated.truth_boundary,/not a customer quote, bid or commitment/i);
+
+const unverified=applyEvidence(estimate,verifiedEvidence.map((x,i)=>i===1?{...x,verification_state:"recorded"}:x));
+assert.equal(unverified.calculation.status,"partial");
+assert.equal(unverified.pricing.subtotal_direct_cost,null);
+assert.equal(unverified.pricing.minimum_price_at_margin_floor,null);
+assert.ok(unverified.rejected_evidence.some(x=>x.kind==="material"&&x.reason==="not_verified"));
+
+const wrongCurrency=applyEvidence(estimate,verifiedEvidence.map((x,i)=>i===4?{...x,currency:"USD"}:x));
+assert.equal(wrongCurrency.calculation.status,"partial");
+assert.ok(wrongCurrency.rejected_evidence.some(x=>x.kind==="subcontract"&&x.reason==="currency_mismatch"));
+assert.equal(wrongCurrency.pricing.quoted_price,null);
+console.log("PASS executive workbench: verified estimate calculation preserves evidence gaps, margin guardrails and no external execution");
