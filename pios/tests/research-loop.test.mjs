@@ -1,0 +1,11 @@
+import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+const src=readFileSync("supabase/functions/universal-orchestrate/index.ts","utf8");
+const approval=src.indexOf("commission?.approval_required===true");
+const automatic=src.indexOf("commission?.auto_execution_authorized===true");
+const call=src.indexOf("callFn('evidence-acquirer'");
+assert.ok(approval>=0,"orchestrator must recognize research approval gates");
+assert.ok(automatic>approval,"approval branch must be evaluated before autonomous research");
+assert.ok(call>automatic,"evidence-acquirer call must sit behind auto-execution authorization");
+assert.ok(src.includes("approval_required:true")&&src.includes("external_action_performed:false"),"skipped research must preserve the approval/no-action record");
+console.log("PASS research loop: approval-gated evidence cannot be autonomously acquired");
