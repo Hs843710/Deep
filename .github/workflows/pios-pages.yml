@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'pios/**'
+      - 'supabase/functions/**'
       - '.github/workflows/pios-pages.yml'
   workflow_dispatch:
 
