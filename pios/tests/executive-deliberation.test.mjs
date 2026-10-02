@@ -33,4 +33,10 @@ assert.match(researchPartial.highest_value_missing_fact,/mandatory tender-docume
 const researchBlocked=deliberate({council:baseCouncil,candidate,personalValue:{not_known:[]},preparedWork:[],researchArtifacts:[{id:"ra3",candidate_id:"c1",question:"Verify COR requirement.",status:"partial",evidence:[{field:"published_requirement_COR_or_SECOR",value:true}],unresolved:[{topic:"COR_or_SECOR",reason:"COR is published but not evidenced in the Twin.",decision_sensitive:true}],conclusion:{status:"blocked_by_unverified_requirement"}}],learningContext:learning});
 assert.equal(researchBlocked.policy,"BLOCK");
 assert.match(researchBlocked.binding_constraint,/COR/);
-console.log("PASS adversarial deliberation: quiet, learn-first, hard block, approval, reversible proceed and research resolution");
+const researchApproval=deliberate({council:baseCouncil,candidate,personalValue:{not_known:["Tender package requirements are not verified."]},preparedWork:[],researchArtifacts:[{id:"ra4",candidate_id:"c1",question:"Retrieve tender package.",status:"partial",evidence:[{field:"public_document_section_detected",value:true}],unresolved:[{topic:"tender_document_access",reason:"Downloading registers supplier interest.",decision_sensitive:true,requires_approval:true}],conclusion:{status:"approval_required_for_evidence"}}],learningContext:learning});
+assert.equal(researchApproval.policy,"LEARN_FIRST");
+assert.equal(researchApproval.research_commission.auto_execution_authorized,false);
+assert.equal(researchApproval.research_commission.approval_required,true);
+assert.equal(researchApproval.research_commission.executor,null);
+assert.match(researchApproval.research_commission.boundary,/external side effect/i);
+console.log("PASS adversarial deliberation: quiet, learn-first, hard block, approval, reversible proceed, research resolution and evidence-side-effect approval");
