@@ -38,15 +38,31 @@ function acquireEvidence({candidate={},signal={},capabilities=[],graphNodes=[],q
   if(!clean(raw.submissionDetails,1200))unresolved.push({topic:"submission_method",reason:"Detailed submission instructions are not present in the stored source payload.",decision_sensitive:true});
   if(fetchSnapshot){
     add("live_source_fetch",{ok:!!fetchSnapshot.ok,status:fetchSnapshot.status??null,final_url:fetchSnapshot.final_url||null,content_type:fetchSnapshot.content_type||null,bytes:fetchSnapshot.bytes??null,sha256:fetchSnapshot.sha256||null,fetched_at:fetchSnapshot.fetched_at||null},"live_source_fetch",fetchSnapshot.ok?95:60);
-    if(fetchSnapshot.ok&&fetchSnapshot.text){ const t=fetchSnapshot.text; const meeting=t.match(/(?:pre[- ]?bid|information)\s+(?:meeting|session)[^.!?\n]{0,220}/i); if(meeting)add("possible_prebid_meeting_text",clean(meeting[0],320),"live_source_fetch",65); const contact=t.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i); if(contact)add("possible_contact_email",contact[0],"live_source_fetch",65); }
+    if(fetchSnapshot.ok&&fetchSnapshot.text){
+      const t=fetchSnapshot.text;
+      const meeting=t.match(/(?:pre[- ]?bid|information)\s+(?:meeting|session)[^.!?\n]{0,220}/i);
+      if(meeting)add("possible_prebid_meeting_text",clean(meeting[0],320),"live_source_fetch",65);
+      const contact=t.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+      if(contact)add("possible_contact_email",contact[0],"live_source_fetch",65);
+      const documents=/document downloads|procurement package|addendum and clarifications/i.test(t);
+      if(documents)add("public_document_section_detected",true,"live_source_fetch",90);
+      const interestSideEffect=/automatically added to the interested suppliers list|subscribed to email notifications/i.test(t);
+      if(interestSideEffect){
+        add("document_access_has_external_side_effect",true,"live_source_fetch",100);
+        unresolved.push({topic:"tender_document_access",reason:"The public posting indicates that downloading documents can register supplier interest and/or subscribe notifications. PIOS must not download the tender package without explicit approval.",decision_sensitive:true,requires_approval:true});
+      }else if(documents){
+        unresolved.push({topic:"tender_documents",reason:"Tender documents are listed, but their contents have not been retrieved or verified in this research run.",decision_sensitive:true,requires_approval:false});
+      }
+    }
     else if(!fetchSnapshot.ok)unresolved.push({topic:"live_source_refresh",reason:"The original public source could not be read in this research run; stored authoritative data remains the only verified source.",decision_sensitive:false});
   }
   const q=clean(question,1200);
   if(/margin|profit|cost|capital|price|econom/i.test(q))unresolved.push({topic:"project_economics",reason:"Public procurement metadata cannot establish direct costs, estimator effort, working capital, or achievable gross margin.",decision_sensitive:true});
   const decisionSensitive=unresolved.filter(x=>x.decision_sensitive);
   const blockers=unresolved.filter(x=>["COR_or_SECOR","insurance","bonding","security_clearance"].includes(x.topic));
-  const status=blockers.length?"blocked_by_unverified_requirement":decisionSensitive.length?"partial":"complete";
-  const conclusion={status,uncertainty_reduced:evidence.length>0,decision_sensitive_gaps:decisionSensitive.length,blocking_requirement_gaps:blockers.length,recommendation:blockers.length?"Do not escalate commitment until the published requirement is verified as satisfied.":decisionSensitive.length?"Use the verified source facts, but keep the decision in LEARN FIRST until the remaining decision-sensitive gap is resolved.":"The requested evidence question is sufficiently answered by the currently stored and fetched source evidence."};
+  const approvalGaps=unresolved.filter(x=>x?.requires_approval===true);
+  const status=blockers.length?"blocked_by_unverified_requirement":approvalGaps.length?"approval_required_for_evidence":decisionSensitive.length?"partial":"complete";
+  const conclusion={status,uncertainty_reduced:evidence.length>0,decision_sensitive_gaps:decisionSensitive.length,blocking_requirement_gaps:blockers.length,approval_required_gaps:approvalGaps.length,recommendation:blockers.length?"Do not escalate commitment until the published requirement is verified as satisfied.":approvalGaps.length?"The next evidence step has an external side effect and requires explicit approval before execution.":decisionSensitive.length?"Use the verified source facts, but keep the decision in LEARN FIRST until the remaining decision-sensitive gap is resolved.":"The requested evidence question is sufficiently answered by the currently stored and fetched source evidence."};
   return {version:"evidence_acquirer_v1",question:q,evidence,unresolved,conclusion};
 }
 export {acquireEvidence};
