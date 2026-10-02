@@ -131,6 +131,15 @@
     for(const check of content.qualification_checks||[])line('p',(check.label||'Check')+' ['+(check.state||'unknown')+']: '+(check.detail||''),'presence-check');
     if(content.dependencies?.length){line('h4','Scope dependencies');for(const item of content.dependencies)line('p','• '+item,'presence-unknown');}
     if(content.recommendation?.detail){line('h4','Prepared conclusion');line('p',content.recommendation.detail,'presence-check');}
+  }else if(content.kind==='estimate_workspace'){
+    line('h4','Pricing skeleton');
+    for(const item of content.line_items||[])line('p',(item.label||item.code)+' · '+String(item.bucket||'scope')+' · quantity '+(item.quantity==null?'not established':item.quantity),'presence-check');
+    const pricing=content.pricing||{};
+    line('h4','Profitability guardrail');
+    line('p',pricing.formula||'Project-specific direct costs and margin remain unverified.','presence-check');
+    line('p','Estimated price: '+(pricing.quoted_price==null?'not calculated':pricing.quoted_price)+' · direct cost: '+(pricing.total_estimated_cost==null?'not calculated':pricing.total_estimated_cost),'presence-unknown');
+    if(content.next_checks?.length){line('h4','Next internal checks');for(const item of content.next_checks)line('p',String(item.order||'')+'. '+(item.label||'')+': '+(item.detail||''),'presence-check');}
+    if(content.truth_boundary)line('p',content.truth_boundary,'presence-warning');
   }
   line('h4','Still unknown');
   for(const unknown of content.unknowns||[])line('p','• '+unknown,'presence-unknown');
@@ -153,8 +162,12 @@
     try{
       let prep=await window.api('/functions/v1/executive-workbench',{method:'POST',
         body:JSON.stringify({operation:'prepare_quote',candidate_id:candidateId})});
-      if(!prep?.prepared)prep=await window.api('/functions/v1/executive-workbench',{method:'POST',
-        body:JSON.stringify({operation:'prepare_candidate_qualification',candidate_id:candidateId})});
+      if(!prep?.prepared){
+        await window.api('/functions/v1/executive-workbench',{method:'POST',
+          body:JSON.stringify({operation:'prepare_candidate_qualification',candidate_id:candidateId})});
+        prep=await window.api('/functions/v1/executive-workbench',{method:'POST',
+          body:JSON.stringify({operation:'prepare_estimate_workspace',candidate_id:candidateId})});
+      }
       if(prep?.prepared&&localStorage.getItem('pios_token')===token)await loadWork();
     }catch(_){ /* Failure remains visibly unprepared; no external action is attempted. */ }
   }
@@ -165,8 +178,13 @@
   if(!candidateId)return {prepared:false,reason:'No selected candidate is available for internal preparation.'};
   let result=await window.api('/functions/v1/executive-workbench',{method:'POST',
     body:JSON.stringify({operation:'prepare_quote',candidate_id:candidateId})});
-  if(!result?.prepared)result=await window.api('/functions/v1/executive-workbench',{method:'POST',
-    body:JSON.stringify({operation:'prepare_candidate_qualification',candidate_id:candidateId})});
+  if(!result?.prepared){
+    const qualification=await window.api('/functions/v1/executive-workbench',{method:'POST',
+      body:JSON.stringify({operation:'prepare_candidate_qualification',candidate_id:candidateId})});
+    const estimate=await window.api('/functions/v1/executive-workbench',{method:'POST',
+      body:JSON.stringify({operation:'prepare_estimate_workspace',candidate_id:candidateId})});
+    result=estimate?.prepared?estimate:qualification;
+  }
   await loadWork();return result;
  }
  function update({council:nextCouncil,personalValue,asOf}={}){
