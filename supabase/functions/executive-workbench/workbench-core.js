@@ -221,7 +221,7 @@ function applyVerifiedEstimateEvidence(workspace,evidence=[],now=new Date().toIS
  const minPrice=totalEstimatedCost!==null&&validFloor?round2(totalEstimatedCost/(1-floor/100)):null;
  const grossProfit=minPrice!==null&&totalEstimatedCost!==null?round2(minPrice-totalEstimatedCost):null;
  const complete=costComplete&&takeoffComplete&&contingency!==null&&validFloor;
- return {...workspace,line_items:items,pricing:{...workspace.pricing,subtotal_direct_cost:subtotal,contingency,
+ return {...workspace,summary:complete?"PIOS applied source-linked verified quantities and cost evidence to calculate an internal estimate and margin-floor price check.":"PIOS applied the available source-linked evidence, but the internal estimate remains partial until every required quantity, direct cost, contingency and margin input is verified.",line_items:items,pricing:{...workspace.pricing,subtotal_direct_cost:subtotal,contingency,
    contingency_mode:contingencyMode,total_estimated_cost:totalEstimatedCost,minimum_price_at_margin_floor:minPrice,
    estimated_gross_profit_at_margin_floor:grossProfit,estimated_margin_pct:minPrice!==null?floor:null,quoted_price:null},
    calculation:{status:complete?"verified_complete":"partial",takeoff_complete:takeoffComplete,direct_cost_complete:costComplete,
