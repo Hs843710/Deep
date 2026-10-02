@@ -51,6 +51,8 @@ jobs:
         run: node pios/tests/executive-deliberation.test.mjs
       - name: Test autonomous evidence acquisition
         run: node pios/tests/evidence-acquirer.test.mjs
+      - name: Test source ingestion authentication
+        run: node pios/tests/ingestor-auth.test.mjs
       - name: Assemble production shell
         run: |
           python - <<'PY'
