@@ -17,10 +17,12 @@ let strategy:any=null;try{const s=await callFn('strategy-brief',jwt,{},60000);st
 let selectedCandidateId=strategy?.strategy?.next_best_move?.candidate_id||null;
 let researchAttempt:any=null;
 if(strategy?.ok&&selectedCandidateId){
-  const before=strategy?.strategy?.next_best_move||{},policy=before?.executive_council?.deliberation?.policy||null;
-  if(policy==='LEARN_FIRST'){
+  const before=strategy?.strategy?.next_best_move||{},thought=before?.executive_council?.deliberation||{},policy=thought?.policy||null,commission=thought?.research_commission||null;
+  if(policy==='LEARN_FIRST'&&commission?.approval_required===true){
+    researchAttempt={ok:true,skipped:true,approval_required:true,reason:commission.boundary||'Explicit approval is required before the next evidence step.',external_action_performed:false};
+  }else if(policy==='LEARN_FIRST'&&commission?.auto_execution_authorized===true){
     try{
-      const aq=await callFn('evidence-acquirer',jwt,{candidate_id:selectedCandidateId,question:before.action||null},30000);
+      const aq=await callFn('evidence-acquirer',jwt,{candidate_id:selectedCandidateId,question:commission.objective||before.action||null},30000);
       researchAttempt={ok:true,elapsed_ms:aq.elapsed_ms,researched:aq.data?.researched===true,already_researched:aq.data?.already_researched===true,
         artifact_id:aq.data?.artifact?.id||null,status:aq.data?.artifact?.status||null,
         decision_recheck_recommended:aq.data?.decision_recheck_recommended===true,external_action_performed:aq.data?.external_action_performed===true};
