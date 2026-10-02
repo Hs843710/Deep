@@ -132,12 +132,26 @@
     if(content.dependencies?.length){line('h4','Scope dependencies');for(const item of content.dependencies)line('p','• '+item,'presence-unknown');}
     if(content.recommendation?.detail){line('h4','Prepared conclusion');line('p',content.recommendation.detail,'presence-check');}
   }else if(content.kind==='estimate_workspace'){
-    line('h4','Pricing skeleton');
-    for(const item of content.line_items||[])line('p',(item.label||item.code)+' · '+String(item.bucket||'scope')+' · quantity '+(item.quantity==null?'not established':item.quantity),'presence-check');
-    const pricing=content.pricing||{};
+    const pricing=content.pricing||{},calc=content.calculation||null;
+    const money=n=>n==null?'not calculated':new Intl.NumberFormat('en-CA',{style:'currency',currency:pricing.currency||'CAD',maximumFractionDigits:2}).format(Number(n));
+    line('h4',calc?'Evidence-backed estimate':'Pricing skeleton');
+    for(const item of content.line_items||[]){
+      const qty=item.quantity==null?'quantity not established':item.quantity+(item.unit?' '+item.unit:'');
+      const cost=item.total_cost==null?'cost not established':money(item.total_cost);
+      line('p',(item.label||item.code)+' · '+String(item.bucket||'scope')+' · '+qty+' · '+cost,'presence-check');
+    }
     line('h4','Profitability guardrail');
     line('p',pricing.formula||'Project-specific direct costs and margin remain unverified.','presence-check');
-    line('p','Estimated price: '+(pricing.quoted_price==null?'not calculated':pricing.quoted_price)+' · direct cost: '+(pricing.total_estimated_cost==null?'not calculated':pricing.total_estimated_cost),'presence-unknown');
+    if(calc){
+      line('p','Calculation status: '+String(calc.status||'partial').replaceAll('_',' ')+' · verified inputs used: '+Number(calc.verified_evidence_used||0),'presence-check');
+      line('p','Direct cost '+money(pricing.subtotal_direct_cost)+' + contingency '+money(pricing.contingency)+' = '+money(pricing.total_estimated_cost),'presence-check');
+      line('p','Minimum internal price at '+(pricing.minimum_gross_margin_pct==null?'unrecorded':pricing.minimum_gross_margin_pct+'%')+' margin: '+money(pricing.minimum_price_at_margin_floor),'presence-check');
+      line('p','Customer quote: not created. This calculation is an internal price floor only.','presence-warning');
+      for(const gap of calc.missing_evidence||[])line('p','Missing: '+gap,'presence-unknown');
+      if(calc.rejected_evidence_count)line('p',calc.rejected_evidence_count+' submitted evidence item(s) were rejected by the verification gate.','presence-warning');
+    }else{
+      line('p','Direct cost: '+money(pricing.total_estimated_cost)+' · customer quote: not created','presence-unknown');
+    }
     if(content.next_checks?.length){line('h4','Next internal checks');for(const item of content.next_checks)line('p',String(item.order||'')+'. '+(item.label||'')+': '+(item.detail||''),'presence-check');}
     if(content.truth_boundary)line('p',content.truth_boundary,'presence-warning');
   }
