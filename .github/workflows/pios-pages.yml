@@ -53,6 +53,8 @@ jobs:
         run: node pios/tests/evidence-acquirer.test.mjs
       - name: Test source ingestion authentication
         run: node pios/tests/ingestor-auth.test.mjs
+      - name: Test internal authentication boundaries
+        run: node pios/tests/internal-auth-boundaries.test.mjs
       - name: Assemble production shell
         run: |
           python - <<'PY'
