@@ -75,7 +75,7 @@ function deliberation({council=null,candidate=null,personalValue=null,preparedWo
       "The option can advance only through the smallest reversible step.",
     confidence_band:confidenceBand,
     strongest_counterargument:counterargument||"No strong counterargument is currently supported by the recorded evidence.",
-    binding_constraint:blockedCheck?.detail||blockedSpecialist?.challenge||null,
+    binding_constraint:researchBlock?(researchUnknowns[0]||"A published requirement is not evidenced as satisfied in the Digital Twin."):(blockedCheck?.detail||blockedSpecialist?.challenge||null),
     highest_value_missing_fact:missingFact,
     falsification_test:falsification,
     competing_hypotheses:hypotheses,
